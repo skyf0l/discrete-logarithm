@@ -58,7 +58,7 @@ pub fn discrete_log_with_order(
     if *order < 1000 {
         discrete_log_trial_mul(n, a, b, Some(order))
     } else if order.is_probably_prime(100) != IsPrime::No {
-        if *order < 1000000000000u64 {
+        if *order < shanks_steps::MAX_ORDER {
             discrete_log_shanks_steps(n, a, b, Some(order))
         } else {
             discrete_log_pollard_rho(n, a, b, Some(order))
