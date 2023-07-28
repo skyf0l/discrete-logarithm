@@ -85,6 +85,6 @@ mod tests {
             Err(Error::NotRelativelyPrime)
         );
 
-        assert_eq!(n_order_with_factors(&11.into(), &Integer::from(Integer::from(10).pow(50) + 151).square(), &HashMap::from([(Integer::from(Integer::from(10).pow(50) + 151), 2)])).unwrap(), Integer::from_str("10000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000022650").unwrap());
+        assert_eq!(n_order_with_factors(&11.into(), &(Integer::from(10).pow(50) + 151u64).square(), &HashMap::from([(Integer::from(10).pow(50) + 151, 2)])).unwrap(), Integer::from_str("10000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000022650").unwrap());
     }
 }
