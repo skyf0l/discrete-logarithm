@@ -7,7 +7,7 @@ use crate::Error;
 /// The algorithm finds the discrete logarithm using exhaustive search.
 /// This naive method is used as fallback algorithm of ``discrete_log`` when the group order is very small.
 pub fn discrete_log_trial_mul(n: &Integer, a: &Integer, b: &Integer) -> Result<Integer, Error> {
-    discrete_log_trial_mul_with_order(n, a, b, &None)
+    discrete_log_trial_mul_with_order(n, a, b, n)
 }
 
 /// Trial multiplication algorithm for computing the discrete logarithm of `h` in base `g` modulo `n` (smallest non-negative integer `x` where `g**x = h (mod n)`)
@@ -20,14 +20,10 @@ pub fn discrete_log_trial_mul_with_order(
     n: &Integer,
     a: &Integer,
     b: &Integer,
-    order: &Option<Integer>,
+    order: &Integer,
 ) -> Result<Integer, Error> {
     let a = a.clone() % n;
     let b = b.clone() % n;
-    let order = match order.as_ref() {
-        Some(order) => order,
-        None => n,
-    };
 
     let mut x = Integer::from(1);
     let mut i = 0;
