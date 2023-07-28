@@ -1,18 +1,105 @@
-use rug::Integer;
+use rug::{ops::Pow, Integer};
 
-use crate::Error;
+use crate::{
+    discrete_log_with_order, n_order,
+    utils::{crt, fast_factor},
+    Error,
+};
 
-/// Trial multiplication algorithm for computing the discrete logarithm of `h` in base `g` modulo `n` (smallest non-negative integer `x` where `g**x = h (mod n)`)
+/// Pohlig-Hellman algorithm for computing the discrete logarithm of `h` in base `g` modulo `n` (smallest non-negative integer `x` where `g**x = h (mod n)`)
 ///
-/// The algorithm finds the discrete logarithm using exhaustive search.
-/// This naive method is used as fallback algorithm of ``discrete_log`` when the group order is very small.
+/// In order to compute the discrete logarithm, the algorithm takes advantage of the factorization of the group order. It is more efficient when the group order factors into many small primes.
 ///
 /// If the order of the group is known, it can be passed as `order` to speed up the computation.
 pub fn discrete_log_pohlig_hellman(
-    _n: &Integer,
-    _a: &Integer,
-    _b: &Integer,
-    _order: Option<&Integer>,
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: Option<&Integer>,
 ) -> Result<Integer, Error> {
-    unimplemented!()
+    let a = a.clone() % n;
+    let b = b.clone() % n;
+    let order = match order {
+        Some(order) => order.clone(),
+        None => n_order(&b, n)?,
+    };
+
+    let order_factors = fast_factor(&order);
+    let mut residues = (0..order_factors.len())
+        .map(|_| Integer::from(0))
+        .collect::<Vec<_>>();
+
+    for (i, (pi, ri)) in order_factors.iter().enumerate() {
+        for j in 0..*ri as u32 {
+            let gj = b.clone().pow_mod(&residues[i], n).unwrap();
+            let aj = (&a * gj.clone().invert(n).unwrap())
+                .pow_mod(&(&order / pi.clone().pow(j + 1)), n)
+                .unwrap();
+            let bj = b.clone().pow_mod(&(&order / pi.clone()), n).unwrap();
+            let cj = discrete_log_with_order(n, &aj, &bj, pi)?;
+            residues[i] += &cj * pi.clone().pow(j);
+        }
+    }
+
+    let modulis = order_factors
+        .iter()
+        .map(|(pi, ri)| pi.clone().pow(*ri as u32))
+        .collect::<Vec<_>>();
+
+    if let Some(d) = crt(&residues, &modulis) {
+        Ok(d)
+    } else {
+        Err(Error::LogDoesNotExist)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rug::ops::Pow;
+
+    use super::*;
+
+    #[test]
+    fn pollard_rho() {
+        assert_eq!(
+            discrete_log_pohlig_hellman(
+                &98376431.into(),
+                &(Integer::from(11).pow(9)),
+                &11.into(),
+                None
+            )
+            .unwrap(),
+            9
+        );
+        assert_eq!(
+            discrete_log_pohlig_hellman(
+                &78723213.into(),
+                &(Integer::from(11).pow(31)),
+                &11.into(),
+                None
+            )
+            .unwrap(),
+            31
+        );
+        assert_eq!(
+            discrete_log_pohlig_hellman(
+                &32942478.into(),
+                &(Integer::from(11).pow(98)),
+                &11.into(),
+                None
+            )
+            .unwrap(),
+            98
+        );
+        assert_eq!(
+            discrete_log_pohlig_hellman(
+                &14789363.into(),
+                &(Integer::from(11).pow(444)),
+                &11.into(),
+                None
+            )
+            .unwrap(),
+            444
+        );
+    }
 }

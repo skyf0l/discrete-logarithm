@@ -11,6 +11,7 @@ mod pohlig_hellman;
 mod pollard_rho;
 mod shanks_steps;
 mod trial_mul;
+mod utils;
 
 pub use n_order::n_order;
 pub use pohlig_hellman::discrete_log_pohlig_hellman;

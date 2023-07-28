@@ -1,30 +1,8 @@
 use std::collections::HashMap;
 
-use primal::Primes;
 use rug::{ops::Pow, Integer};
 
-use crate::Error;
-
-fn fast_factor(n: &Integer) -> HashMap<Integer, usize> {
-    let mut factors: HashMap<Integer, usize> = HashMap::new();
-    let mut n: Integer = n.clone();
-    for prime in Primes::all().take(1_000_000) {
-        let prime = Integer::from(prime);
-        if n.clone().div_rem(prime.clone()).1 == 0 {
-            // factors.insert(prime.clone(), 1);
-            while n.clone().div_rem(prime.clone()).1 == 0 {
-                n /= &prime;
-                *factors.entry(prime.clone()).or_insert(0) += 1;
-            }
-        }
-    }
-
-    if n != 1 {
-        *factors.entry(n).or_insert(0) += 1;
-    }
-
-    factors
-}
+use crate::{utils::fast_factor, Error};
 
 /// Returns the order of `a` modulo `n`.
 ///
