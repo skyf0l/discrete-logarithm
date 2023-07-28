@@ -4,7 +4,7 @@ use crate::{n_order, Error};
 
 const RETRIES: usize = 10;
 
-/// Pollard's Rho  algorithm for computing the discrete logarithm of `h` in base `g` modulo `n` (smallest non-negative integer `x` where `g**x = h (mod n)`)
+/// Pollard's Rho  algorithm for computing the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`).
 ///
 /// It is a randomized algorithm with the same expected running time as `discrete_log_shanks_steps`, but requires a negligible amount of memory.
 ///

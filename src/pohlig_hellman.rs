@@ -6,7 +6,7 @@ use crate::{
     Error,
 };
 
-/// Pohlig-Hellman algorithm for computing the discrete logarithm of `h` in base `g` modulo `n` (smallest non-negative integer `x` where `g**x = h (mod n)`)
+/// Pohlig-Hellman algorithm for computing the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`).
 ///
 /// In order to compute the discrete logarithm, the algorithm takes advantage of the factorization of the group order. It is more efficient when the group order factors into many small primes.
 ///

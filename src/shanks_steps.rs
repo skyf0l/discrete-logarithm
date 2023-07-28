@@ -6,7 +6,7 @@ use crate::{n_order, Error};
 
 pub const MAX_ORDER: u64 = 1_000_000_000_000u64;
 
-/// Baby-step giant-step algorithm for computing the discrete logarithm of `h` in base `g` modulo `n` (smallest non-negative integer `x` where `g**x = h (mod n)`)
+/// Baby-step giant-step algorithm for computing the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`).
 ///
 /// The algorithm is a time-memory trade-off of the method of exhaustive search. It uses `O(sqrt(m))` memory, where `m` is the group order.
 ///
