@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use rug::Integer;
 
-use crate::Error;
+use crate::{n_order, Error};
 
 pub const MAX_ORDER: u64 = 1_000_000_000_000u64;
 
@@ -20,15 +20,15 @@ pub fn discrete_log_shanks_steps(
     let a = a.clone() % n;
     let b = b.clone() % n;
     let order = match order {
-        Some(order) => order,
-        None => n,
+        Some(order) => order.clone(),
+        None => n_order(&b, n)?,
     };
 
-    if *order >= MAX_ORDER {
+    if order >= MAX_ORDER {
         return Err(Error::LogDoesNotExist);
     }
 
-    let m = order.clone().sqrt().to_i32().unwrap() + 1;
+    let m = order.sqrt().to_i32().unwrap() + 1;
     let mut t = HashMap::new();
     let mut x = Integer::from(1);
     for i in 0..m {
@@ -56,7 +56,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn trial_mul() {
+    fn shanks_steps() {
         assert_eq!(
             discrete_log_shanks_steps(&442879.into(), &(Integer::from(7).pow(2)), &7.into(), None)
                 .unwrap(),

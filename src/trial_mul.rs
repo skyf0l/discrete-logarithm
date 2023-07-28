@@ -34,6 +34,7 @@ pub fn discrete_log_trial_mul(
             break;
         }
     }
+
     Err(Error::LogDoesNotExist)
 }
 
