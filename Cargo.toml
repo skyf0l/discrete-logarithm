@@ -1,0 +1,24 @@
+[package]
+name = "discrete-logarithm"
+version = "0.0.0"
+edition = "2021"
+authors = ["skyf0l <skyf0lmails@proton.me>"]
+description = "Fast discrete logarithm solver"
+repository = "https://github.com/skyf0l/discrete-logarithm"
+license = "MIT OR Apache-2.0"
+categories = ["algorithms", "mathematics"]
+keywords = ["number-theory", "cryptography", "bignum", "discrete-logarithm"]
+include = [
+  "src/**/*",
+  "Cargo.toml",
+  "LICENSE*",
+  "README.md",
+]
+readme = "README.md"
+
+[dependencies]
+
+[dependencies.rug]
+version = "1"
+default-features = false
+features = ["integer", "rand"]
