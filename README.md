@@ -7,7 +7,7 @@
 
 Fast discrete logarithm solver in Rust. 
 
-The code is based on the sympy implementation and translated to Rust.
+The code is based on the [sympy](https://github.com/sympy/sympy) implementation and translated to Rust.
 
 ## License
 
