@@ -17,6 +17,7 @@ include = [
 readme = "README.md"
 
 [dependencies]
+thiserror = "1"
 
 [dependencies.rug]
 version = "1"
