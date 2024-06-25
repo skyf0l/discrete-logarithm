@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/skyf0l/discrete-logarithm/actions/workflows/ci.yml/badge.svg)](https://github.com/skyf0l/discrete-logarithm/actions/workflows/ci.yml)
 [![Crate.io](https://img.shields.io/crates/v/discrete-logarithm.svg)](https://crates.io/crates/discrete-logarithm)
-[![codecov](https://codecov.io/gh/skyf0l/discrete-logarithm/branch/master/graph/badge.svg)](https://codecov.io/gh/skyf0l/discrete-logarithm)
+[![codecov](https://codecov.io/gh/skyf0l/discrete-logarithm/branch/main/graph/badge.svg)](https://codecov.io/gh/skyf0l/discrete-logarithm)
 
 Fast discrete logarithm solver in Rust.
 
