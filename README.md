@@ -8,6 +8,8 @@ Fast discrete logarithm solver in Rust.
 
 The code is based on the [sympy](https://github.com/sympy/sympy) implementation and translated to Rust.
 
+Based on [rug](https://crates.io/crates/rug), it can use [arbitrary-precision numbers (aka BigNum)](https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic).
+
 ## License
 
 Licensed under either of
