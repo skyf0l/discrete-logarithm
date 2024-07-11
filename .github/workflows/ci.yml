@@ -71,7 +71,7 @@ jobs:
         tool: cargo-nextest
 
     - name: Test
-      run: cargo nextest run --all-features --lib --bins --test keys
+      run: cargo nextest run --all-features
 
   coverage:
     name: Coverage
