@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use n_order::n_order_with_factors;
 use rug::{integer::IsPrime, Integer};
+// mod index_calculus;
 mod n_order;
 mod pohlig_hellman;
 mod pollard_rho;
@@ -13,6 +14,7 @@ mod shanks_steps;
 mod trial_mul;
 mod utils;
 
+// pub use index_calculus::discrete_log_index_calculus;
 pub use n_order::n_order;
 pub use pohlig_hellman::discrete_log_pohlig_hellman;
 pub use pollard_rho::discrete_log_pollard_rho;
@@ -73,7 +75,56 @@ pub fn discrete_log_with_order(
 mod tests {
     use std::str::FromStr;
 
+    use rug::ops::Pow;
+
     use super::*;
+
+    #[test]
+    fn discrete_log_() {
+        assert_eq!(
+            discrete_log(&587.into(), &(Integer::from(2).pow(9)), &2.into(),).unwrap(),
+            9
+        );
+        assert_eq!(
+            discrete_log(&2456747.into(), &(Integer::from(3).pow(51)), &3.into(),).unwrap(),
+            51
+        );
+        assert_eq!(
+            discrete_log(&32942478.into(), &(Integer::from(11).pow(127)), &11.into(),).unwrap(),
+            127
+        );
+        assert_eq!(
+            discrete_log(
+                &Integer::from_str("432751500361").unwrap(),
+                &(Integer::from(7).pow(324)),
+                &7.into(),
+            )
+            .unwrap(),
+            324
+        );
+        assert_eq!(
+            discrete_log(
+                &Integer::from_str("265390227570863").unwrap(),
+                &Integer::from_str("184500076053622").unwrap(),
+                &2.into(),
+            )
+            .unwrap(),
+            Integer::from_str("17835221372061").unwrap(),
+        );
+        assert_eq!(
+            discrete_log(
+                &Integer::from_str("22708823198678103974314518195029102158525052496759285596453269189798311427475159776411276642277139650833937").unwrap(),
+                &Integer::from_str("17463946429475485293747680247507700244427944625055089103624311227422110546803452417458985046168310373075327").unwrap(),
+                &123456.into(),
+            )
+            .unwrap(),
+            Integer::from_str("2068031853682195777930683306640554533145512201725884603914601918777510185469769997054750835368413389728895").unwrap(),
+        );
+        assert_eq!(
+            discrete_log(&5779.into(), &3528.into(), &6215.into(),).unwrap(),
+            687
+        );
+    }
 
     #[test]
     fn big_discrete_log() {
