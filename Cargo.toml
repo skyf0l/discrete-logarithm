@@ -17,7 +17,7 @@ include = [
 readme = "README.md"
 
 [dependencies]
-thiserror = "1.0"
+thiserror = "2.0"
 primal = "0.3"
 
 [dependencies.rug]
