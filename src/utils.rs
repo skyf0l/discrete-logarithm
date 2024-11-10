@@ -9,7 +9,6 @@ pub fn fast_factor(n: &Integer) -> HashMap<Integer, usize> {
     for prime in Primes::all().take(1_000_000) {
         let prime = Integer::from(prime);
         if n.clone().div_rem(prime.clone()).1 == 0 {
-            // factors.insert(prime.clone(), 1);
             while n.clone().div_rem(prime.clone()).1 == 0 {
                 n /= &prime;
                 *factors.entry(prime.clone()).or_insert(0) += 1;
