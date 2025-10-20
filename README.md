@@ -10,6 +10,29 @@ The code is based on the [sympy](https://github.com/sympy/sympy) implementation 
 
 Based on [rug](https://crates.io/crates/rug), it can use [arbitrary-precision numbers (aka BigNum)](https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic).
 
+## Benchmarking
+
+This crate includes benchmarks comparing different bignum libraries:
+- `rug` (default, GMP bindings via MPFR)
+- `num-bigint` (pure Rust)
+- `ibig` (pure Rust)
+- `rust-gmp` (GMP bindings)
+
+To run benchmarks with different backends:
+
+```bash
+# Default (rug only)
+cargo bench
+
+# With num-bigint
+cargo bench --features bench-num-bigint
+
+# With all backends
+cargo bench --features bench-num-bigint,bench-ibig,bench-rust-gmp
+```
+
+Note: The `ramp` crate requires nightly Rust and is not included in the benchmarks.
+
 ## License
 
 Licensed under either of
