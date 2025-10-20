@@ -16,32 +16,13 @@ This library solves the discrete logarithm problem: given `b`, `a`, and `n`, fin
 
 The main `discrete_log` function intelligently selects the most efficient algorithm based on the characteristics of the input, specifically the order of the group. The following algorithms are implemented:
 
-### Trial Multiplication
-- **Complexity**: O(order)
-- **Use case**: Very small orders (< 1,000)
-- **Description**: Exhaustive search testing each exponent sequentially
-
-### Baby-Step Giant-Step (Shanks' Algorithm)
-- **Complexity**: O(√order)
-- **Memory**: O(√order)
-- **Use case**: Prime orders when memory usage is acceptable
-- **Description**: Time-memory tradeoff algorithm that precomputes a table of values
-
-### Pollard's Rho
-- **Complexity**: O(√order)
-- **Memory**: O(1)
-- **Use case**: Large prime orders where memory is constrained
-- **Description**: Randomized algorithm with minimal memory requirements, same expected time as Shanks
-
-### Pohlig-Hellman
-- **Complexity**: O(∑ e_i(log(n) + √p_i)) where order = ∏ p_i^e_i
-- **Use case**: Composite orders (non-prime)
-- **Description**: Reduces the problem to smaller subproblems using the factorization of the group order
-
-### Index Calculus
-- **Complexity**: O(exp(2√(log(n)log(log(n)))))
-- **Use case**: Very large prime orders where exp(2√(log(n)log(log(n)))) < √order
-- **Description**: Most efficient for very large primes, uses smooth numbers and linear algebra
+| Algorithm | Complexity | Memory | Use Case | Description |
+|-----------|------------|--------|----------|-------------|
+| **Trial Multiplication** | O(order) | O(1) | Very small orders (< 1,000) | Exhaustive search testing each exponent sequentially |
+| **Baby-Step Giant-Step** | O(√order) | O(√order) | Prime orders when memory usage is acceptable | Time-memory tradeoff algorithm that precomputes a table of values |
+| **Pollard's Rho** | O(√order) | O(1) | Large prime orders where memory is constrained | Randomized algorithm with minimal memory requirements, same expected time as Shanks |
+| **Pohlig-Hellman** | O(∑ e_i(log(n) + √p_i)) | O(log order) | Composite orders (non-prime) | Reduces the problem to smaller subproblems using the factorization of the group order |
+| **Index Calculus** | O(exp(2√(log(n)log(log(n))))) | O(B) | Very large prime orders where exp(2√(log(n)log(log(n)))) < √order | Most efficient for very large primes, uses smooth numbers and linear algebra |
 
 ### Algorithm Selection Logic
 
