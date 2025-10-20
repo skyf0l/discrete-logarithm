@@ -1,4 +1,4 @@
-use rug::{ops::Pow, Integer};
+use crate::bignum::{Integer, Pow};
 
 use crate::{
     discrete_log_with_order, n_order,

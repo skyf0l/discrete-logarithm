@@ -4,8 +4,13 @@
 
 use std::collections::HashMap;
 
+mod bignum;
+use bignum::Integer;
+
+#[cfg(all(feature = "num-bigint", not(feature = "rug")))]
+use bignum::IntegerExt as _;
+
 use n_order::n_order_with_factors;
-use rug::{integer::IsPrime, Integer};
 mod index_calculus;
 mod n_order;
 mod pohlig_hellman;
@@ -69,7 +74,7 @@ pub fn discrete_log_with_order(
 
     if *order < 1000 {
         discrete_log_trial_mul(n, a, b, Some(order))
-    } else if order.is_probably_prime(100) != IsPrime::No {
+    } else if order.is_probably_prime(100) != bignum::not_prime() {
         // Shanks and Pollard rho are O(sqrt(order)) while index calculus is O(exp(2*sqrt(log(n)log(log(n)))))
         // we compare the expected running times to determine the algorithm which is expected to be faster
         let n_f64 = n.to_f64();

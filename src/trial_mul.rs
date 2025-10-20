@@ -1,4 +1,4 @@
-use rug::Integer;
+use crate::bignum::Integer;
 
 use crate::Error;
 

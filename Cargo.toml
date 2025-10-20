@@ -24,3 +24,38 @@ primal = "0.3"
 version = "1.26"
 default-features = false
 features = ["integer", "rand"]
+optional = true
+
+[dependencies.num-bigint]
+version = "0.4"
+features = ["rand"]
+optional = true
+
+[dependencies.num-integer]
+version = "0.1"
+optional = true
+
+[dependencies.num-traits]
+version = "0.2"
+optional = true
+
+[dependencies.ibig]
+version = "0.3"
+optional = true
+
+[dependencies.rust-gmp]
+version = "0.5"
+optional = true
+
+[dependencies.rand]
+version = "0.8"
+optional = true
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[features]
+default = ["rug"]
+num-bigint = ["dep:num-bigint", "dep:num-traits", "dep:num-integer", "dep:rand"]
+ibig = ["dep:ibig", "dep:rand"]
+rust-gmp = ["dep:rust-gmp", "dep:rand"]

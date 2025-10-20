@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rug::Integer;
+use crate::bignum::Integer;
 
 use crate::{n_order, Error};
 

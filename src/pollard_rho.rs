@@ -1,4 +1,4 @@
-use rug::{rand::RandState, Integer};
+use crate::bignum::{Integer, new_rng};
 
 use crate::{n_order, Error};
 
@@ -22,7 +22,7 @@ pub fn discrete_log_pollard_rho(
         None => n_order(&b, n)?,
     };
 
-    let mut rand_state = RandState::new();
+    let mut rand_state = new_rng();
 
     let order_minus_2 = Integer::from(&order - 2);
 

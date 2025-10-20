@@ -1,5 +1,5 @@
 use primal::Primes;
-use rug::{rand::RandState, Integer};
+use crate::bignum::{Integer, new_rng};
 
 use crate::Error;
 
@@ -111,7 +111,7 @@ pub fn discrete_log_index_calculus(
     let mut k = 1; // number of relations found
     let mut kk = 0; // number of consecutive failures
 
-    let mut rand_state = RandState::new();
+    let mut rand_state = new_rng();
     let order_minus_1: Integer = order.clone() - 1;
 
     while k < 3 * lf && kk < max_tries {

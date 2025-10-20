@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use rug::{ops::Pow, Integer};
+use crate::bignum::{Integer, Pow};
 
 use crate::{utils::fast_factor, Error};
 
