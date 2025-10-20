@@ -10,6 +10,52 @@ The code is based on the [sympy](https://github.com/sympy/sympy) implementation 
 
 Based on [rug](https://crates.io/crates/rug), it can use [arbitrary-precision numbers (aka BigNum)](https://en.wikipedia.org/wiki/Arbitrary-precision_arithmetic).
 
+## Algorithm
+
+This library solves the discrete logarithm problem: given `b`, `a`, and `n`, find the smallest non-negative integer `x` such that `b^x ≡ a (mod n)`.
+
+The main `discrete_log` function intelligently selects the most efficient algorithm based on the characteristics of the input, specifically the order of the group. The following algorithms are implemented:
+
+### Trial Multiplication
+- **Complexity**: O(order)
+- **Use case**: Very small orders (< 1,000)
+- **Description**: Exhaustive search testing each exponent sequentially
+
+### Baby-Step Giant-Step (Shanks' Algorithm)
+- **Complexity**: O(√order)
+- **Memory**: O(√order)
+- **Use case**: Prime orders when memory usage is acceptable
+- **Description**: Time-memory tradeoff algorithm that precomputes a table of values
+
+### Pollard's Rho
+- **Complexity**: O(√order)
+- **Memory**: O(1)
+- **Use case**: Large prime orders where memory is constrained
+- **Description**: Randomized algorithm with minimal memory requirements, same expected time as Shanks
+
+### Pohlig-Hellman
+- **Complexity**: O(∑ e_i(log(n) + √p_i)) where order = ∏ p_i^e_i
+- **Use case**: Composite orders (non-prime)
+- **Description**: Reduces the problem to smaller subproblems using the factorization of the group order
+
+### Index Calculus
+- **Complexity**: O(exp(2√(log(n)log(log(n)))))
+- **Use case**: Very large prime orders where exp(2√(log(n)log(log(n)))) < √order
+- **Description**: Most efficient for very large primes, uses smooth numbers and linear algebra
+
+### Algorithm Selection Logic
+
+The library automatically selects the optimal algorithm:
+
+1. If order < 1,000: use **Trial Multiplication**
+2. If order is prime (or probably prime):
+   - If 4√(log(n)log(log(n))) < log(order) - 10: use **Index Calculus**
+   - Else if order < 10^12: use **Baby-Step Giant-Step**
+   - Else: use **Pollard's Rho**
+3. If order is composite: use **Pohlig-Hellman**
+
+This automatic selection ensures optimal performance across different problem sizes and characteristics.
+
 ## License
 
 Licensed under either of
