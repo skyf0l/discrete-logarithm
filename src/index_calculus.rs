@@ -31,6 +31,21 @@ fn is_smooth(mut n: Integer, factorbase: &[usize]) -> Option<Vec<u32>> {
 /// This algorithm is particularly efficient for large prime orders when
 /// exp(2*sqrt(log(n)*log(log(n)))) < sqrt(order).
 ///
+/// # Examples
+///
+/// ```
+/// use discrete_logarithm::discrete_log_index_calculus;
+/// use rug::Integer;
+///
+/// let n = Integer::from(24570203447_u64);
+/// let a = Integer::from(23859756228_u64);
+/// let b = Integer::from(2);
+/// let order = Integer::from(12285101723_u64);
+///
+/// let x = discrete_log_index_calculus(&n, &a, &b, Some(&order)).unwrap();
+/// assert_eq!(x, Integer::from(4519867240_u64));
+/// ```
+///
 /// If the order of the group is known, it must be passed as `order`.
 pub fn discrete_log_index_calculus(
     n: &Integer,
