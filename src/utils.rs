@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use primal::Primes;
-use crate::bignum::Integer;
+use crate::bignum::{Integer, IntegerExt as _};
 
 pub fn fast_factor(n: &Integer) -> HashMap<Integer, usize> {
     let mut factors: HashMap<Integer, usize> = HashMap::new();

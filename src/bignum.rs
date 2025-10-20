@@ -23,6 +23,10 @@ mod rug_backend {
     pub fn not_prime() -> PrimalityResult {
         IsPrime::No
     }
+    
+    // Dummy trait for rug to keep API consistent
+    pub trait IntegerExt {}
+    impl IntegerExt for Integer {}
 }
 
 #[cfg(feature = "rug")]

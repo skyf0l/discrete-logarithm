@@ -1,4 +1,4 @@
-use crate::bignum::Integer;
+use crate::bignum::{Integer, IntegerExt as _};
 
 use crate::Error;
 

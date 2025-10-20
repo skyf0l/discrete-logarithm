@@ -1,4 +1,4 @@
-use crate::bignum::{Integer, Pow};
+use crate::bignum::{Integer, Pow, IntegerExt as _};
 
 use crate::{
     discrete_log_with_order, n_order,

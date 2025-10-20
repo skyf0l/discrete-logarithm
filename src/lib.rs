@@ -5,10 +5,7 @@
 use std::collections::HashMap;
 
 mod bignum;
-use bignum::Integer;
-
-#[cfg(all(feature = "num-bigint", not(feature = "rug")))]
-use bignum::IntegerExt as _;
+use bignum::{Integer, IntegerExt as _};
 
 use n_order::n_order_with_factors;
 mod index_calculus;
@@ -64,15 +61,15 @@ pub fn discrete_log_with_order(
     order: &Integer,
 ) -> Result<Integer, Error> {
     // Validate input: n should be positive
-    if *n < 1 {
+    if *n < Integer::from(1) {
         return Err(Error::LogDoesNotExist);
     }
     // Special case: n == 1
-    if *n == 1 {
+    if *n == Integer::from(1) {
         return Ok(Integer::from(0));
     }
 
-    if *order < 1000 {
+    if *order < Integer::from(1000) {
         discrete_log_trial_mul(n, a, b, Some(order))
     } else if order.is_probably_prime(100) != bignum::not_prime() {
         // Shanks and Pollard rho are O(sqrt(order)) while index calculus is O(exp(2*sqrt(log(n)log(log(n)))))
@@ -86,7 +83,7 @@ pub fn discrete_log_with_order(
         // Use index calculus if 4*sqrt(log(n)*log(log(n))) < log(order) - 10
         if 4.0 * (log_n * log_log_n).sqrt() < log_order - 10.0 {
             discrete_log_index_calculus(n, a, b, Some(order))
-        } else if *order < shanks_steps::MAX_ORDER {
+        } else if *order < Integer::from(shanks_steps::MAX_ORDER) {
             discrete_log_shanks_steps(n, a, b, Some(order))
         } else {
             discrete_log_pollard_rho(n, a, b, Some(order))

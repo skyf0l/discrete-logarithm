@@ -1,4 +1,4 @@
-use crate::bignum::{Integer, new_rng};
+use crate::bignum::{Integer, IntegerExt as _, new_rng};
 
 use crate::{n_order, Error};
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::bignum::{Integer, Pow};
+use crate::bignum::{Integer, Pow, IntegerExt as _};
 
 use crate::{utils::fast_factor, Error};
 
