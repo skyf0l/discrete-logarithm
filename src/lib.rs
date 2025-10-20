@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use n_order::n_order_with_factors;
 use rug::{integer::IsPrime, Integer};
-// mod index_calculus;
+mod index_calculus;
 mod n_order;
 mod pohlig_hellman;
 mod pollard_rho;
@@ -14,7 +14,7 @@ mod shanks_steps;
 mod trial_mul;
 mod utils;
 
-// pub use index_calculus::discrete_log_index_calculus;
+pub use index_calculus::discrete_log_index_calculus;
 pub use n_order::n_order;
 pub use pohlig_hellman::discrete_log_pohlig_hellman;
 pub use pollard_rho::discrete_log_pollard_rho;
@@ -58,10 +58,30 @@ pub fn discrete_log_with_order(
     b: &Integer,
     order: &Integer,
 ) -> Result<Integer, Error> {
+    // Validate input: n should be positive
+    if *n < 1 {
+        return Err(Error::LogDoesNotExist);
+    }
+    // Special case: n == 1
+    if *n == 1 {
+        return Ok(Integer::from(0));
+    }
+
     if *order < 1000 {
         discrete_log_trial_mul(n, a, b, Some(order))
     } else if order.is_probably_prime(100) != IsPrime::No {
-        if *order < shanks_steps::MAX_ORDER {
+        // Shanks and Pollard rho are O(sqrt(order)) while index calculus is O(exp(2*sqrt(log(n)log(log(n)))))
+        // we compare the expected running times to determine the algorithm which is expected to be faster
+        let n_f64 = n.to_f64();
+        let order_f64 = order.to_f64();
+        let log_n = n_f64.ln();
+        let log_log_n = log_n.ln();
+        let log_order = order_f64.ln();
+
+        // Use index calculus if 4*sqrt(log(n)*log(log(n))) < log(order) - 10
+        if 4.0 * (log_n * log_log_n).sqrt() < log_order - 10.0 {
+            discrete_log_index_calculus(n, a, b, Some(order))
+        } else if *order < shanks_steps::MAX_ORDER {
             discrete_log_shanks_steps(n, a, b, Some(order))
         } else {
             discrete_log_pollard_rho(n, a, b, Some(order))
@@ -135,6 +155,31 @@ mod tests {
         assert_eq!(
             discrete_log(&n, &a, &b).unwrap(),
             Integer::from_str("495604594360692646132957963901411709").unwrap(),
+        );
+    }
+
+    #[test]
+    fn discrete_log_n_equals_one() {
+        // Special case: n == 1 should return 0
+        assert_eq!(discrete_log(&1.into(), &0.into(), &0.into()).unwrap(), 0);
+    }
+
+    #[test]
+    fn discrete_log_n_less_than_one() {
+        // Invalid case: n < 1 will cause n_order to fail with NotRelativelyPrime
+        // when called through discrete_log wrapper
+        assert_eq!(
+            discrete_log(&0.into(), &1.into(), &2.into()),
+            Err(Error::NotRelativelyPrime)
+        );
+        // But when called directly with discrete_log_with_order, validation catches it
+        assert_eq!(
+            discrete_log_with_order(&0.into(), &1.into(), &2.into(), &10.into()),
+            Err(Error::LogDoesNotExist)
+        );
+        assert_eq!(
+            discrete_log_with_order(&(-1).into(), &1.into(), &2.into(), &10.into()),
+            Err(Error::LogDoesNotExist)
         );
     }
 }
