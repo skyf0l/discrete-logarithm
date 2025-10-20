@@ -69,8 +69,8 @@ pub fn discrete_log_index_calculus(
     let b_bound = (0.5 * (log_n * log_log_n).sqrt() * (1.0 + 1.0 / log_log_n)).exp();
     let b_bound = b_bound as usize;
 
-    // Compute the factorbase - all primes up to B
-    let factorbase: Vec<usize> = Primes::all().take_while(|&p| p <= b_bound).collect();
+    // Compute the factorbase - all primes up to B (exclusive, matching sympy's primerange(B))
+    let factorbase: Vec<usize> = Primes::all().take_while(|&p| p < b_bound).collect();
     let lf = factorbase.len();
 
     if lf == 0 {
