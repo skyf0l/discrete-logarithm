@@ -16,13 +16,13 @@ This library solves the discrete logarithm problem: given `b`, `a`, and `n`, fin
 
 The main `discrete_log` function intelligently selects the most efficient algorithm based on the characteristics of the input, specifically the order of the group. The following algorithms are implemented:
 
-| Algorithm | Complexity | Memory | Use Case | Description |
-|-----------|------------|--------|----------|-------------|
-| **Trial Multiplication** | O(order) | O(1) | Very small orders (< 1,000) | Exhaustive search testing each exponent sequentially |
-| **Baby-Step Giant-Step** | O(√order) | O(√order) | Prime orders when memory usage is acceptable | Time-memory tradeoff algorithm that precomputes a table of values |
-| **Pollard's Rho** | O(√order) | O(1) | Large prime orders where memory is constrained | Randomized algorithm with minimal memory requirements, same expected time as Shanks |
-| **Pohlig-Hellman** | O(∑ e_i(log(n) + √p_i)) | O(log order) | Composite orders (non-prime) | Reduces the problem to smaller subproblems using the factorization of the group order |
-| **Index Calculus** | O(exp(2√(log(n)log(log(n))))) | O(B) | Very large prime orders where exp(2√(log(n)log(log(n)))) < √order | Most efficient for very large primes, uses smooth numbers and linear algebra |
+| Algorithm | Complexity | Memory | Use Case |
+|-----------|------------|--------|----------|
+| **Trial Multiplication**<br>Exhaustive search testing each exponent sequentially | O(order) | O(1) | Very small orders (< 1,000) |
+| **Baby-Step Giant-Step**<br>Time-memory tradeoff algorithm that precomputes a table of values | O(√order) | O(√order) | Prime orders when memory usage is acceptable |
+| **Pollard's Rho**<br>Randomized algorithm with minimal memory requirements, same expected time as Shanks | O(√order) | O(1) | Large prime orders where memory is constrained |
+| **Pohlig-Hellman**<br>Reduces the problem to smaller subproblems using the factorization of the group order | O(∑ e_i(log(n) + √p_i)) | O(log(order)) | Composite orders (non-prime) |
+| **Index Calculus**<br>Most efficient for very large primes, uses smooth numbers and linear algebra | O(exp(2√(log(n)log(log(n))))) | O(B) | Very large prime orders where exp(2√(log(n)log(log(n)))) < √order |
 
 ### Algorithm Selection Logic
 
