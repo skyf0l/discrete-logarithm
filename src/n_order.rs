@@ -8,7 +8,18 @@ use crate::{utils::fast_factor, Error};
 ///
 /// The order of `a` modulo `n` is the smallest integer `k` such that `a**k` leaves a remainder of 1 with `n`.
 pub fn n_order(a: &Integer, n: &Integer) -> Result<Integer, Error> {
-    if a.clone().gcd(n) != 1 {
+    // Validate n > 1
+    if *n <= 1 {
+        return Err(Error::NotRelativelyPrime);
+    }
+
+    // Early return for trivial case
+    let a_mod = a.clone() % n;
+    if a_mod == 1 {
+        return Ok(Integer::from(1));
+    }
+
+    if a_mod.clone().gcd(n) != 1 {
         return Err(Error::NotRelativelyPrime);
     }
 
@@ -26,7 +37,18 @@ pub fn n_order_with_factors(
     n: &Integer,
     n_factors: &HashMap<Integer, usize>,
 ) -> Result<Integer, Error> {
-    if a.clone().gcd(n) != 1 {
+    // Validate n > 1
+    if *n <= 1 {
+        return Err(Error::NotRelativelyPrime);
+    }
+
+    // Early return for trivial case
+    let a_mod = a.clone() % n;
+    if a_mod == 1 {
+        return Ok(Integer::from(1));
+    }
+
+    if a_mod.clone().gcd(n) != 1 {
         return Err(Error::NotRelativelyPrime);
     }
 
@@ -47,11 +69,10 @@ pub fn n_order_with_factors(
     }
 
     let mut order = Integer::from(1);
-    let a = a.clone() % n;
     for (p, e) in factors {
         let mut exponent = group_order.clone();
         for f in 0..=e {
-            if a.clone().pow_mod(&exponent, n).unwrap() != 1 {
+            if a_mod.clone().pow_mod(&exponent, n).unwrap() != 1 {
                 order *= p.clone().pow((e - f + 1) as u32);
                 break;
             }
@@ -86,5 +107,30 @@ mod tests {
         );
 
         assert_eq!(n_order_with_factors(&11.into(), &(Integer::from(10).pow(50) + 151u64).square(), &HashMap::from([(Integer::from(10).pow(50) + 151, 2)])).unwrap(), Integer::from_str("10000000000000000000000000000000000000000000000030100000000000000000000000000000000000000000000022650").unwrap());
+    }
+
+    #[test]
+    fn n_order_trivial_case() {
+        // Test early return for a % n == 1
+        assert_eq!(n_order(&1.into(), &7.into()).unwrap(), 1);
+        assert_eq!(n_order(&8.into(), &7.into()).unwrap(), 1); // 8 % 7 = 1
+        assert_eq!(n_order(&15.into(), &7.into()).unwrap(), 1); // 15 % 7 = 1
+    }
+
+    #[test]
+    fn n_order_validation() {
+        // Test n <= 1 validation
+        assert_eq!(
+            n_order(&2.into(), &1.into()),
+            Err(Error::NotRelativelyPrime)
+        );
+        assert_eq!(
+            n_order(&2.into(), &0.into()),
+            Err(Error::NotRelativelyPrime)
+        );
+        assert_eq!(
+            n_order(&2.into(), &(-1).into()),
+            Err(Error::NotRelativelyPrime)
+        );
     }
 }

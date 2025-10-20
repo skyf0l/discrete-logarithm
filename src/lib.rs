@@ -34,6 +34,10 @@ pub enum Error {
 
 /// Compute the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`).
 pub fn discrete_log(n: &Integer, a: &Integer, b: &Integer) -> Result<Integer, Error> {
+    // Special case: n == 1
+    if *n == 1 {
+        return Ok(Integer::from(0));
+    }
     discrete_log_with_order(n, a, b, &n_order(b, n)?)
 }
 
@@ -46,6 +50,10 @@ pub fn discrete_log_with_factors(
     b: &Integer,
     n_factors: &HashMap<Integer, usize>,
 ) -> Result<Integer, Error> {
+    // Special case: n == 1
+    if *n == 1 {
+        return Ok(Integer::from(0));
+    }
     discrete_log_with_order(n, a, b, &n_order_with_factors(b, n, n_factors)?)
 }
 
@@ -180,6 +188,21 @@ mod tests {
         assert_eq!(
             discrete_log_with_order(&(-1).into(), &1.into(), &2.into(), &10.into()),
             Err(Error::LogDoesNotExist)
+        );
+    }
+
+    #[test]
+    fn discrete_log_matches_sympy_examples() {
+        // Test cases from SymPy documentation
+        // >>> from sympy.ntheory import discrete_log
+        // >>> discrete_log(41, 15, 7)
+        // 3
+        assert_eq!(discrete_log(&41.into(), &15.into(), &7.into()).unwrap(), 3);
+
+        // Additional test cases to match Python behavior
+        assert_eq!(
+            discrete_log(&587.into(), &(Integer::from(2).pow(9)), &2.into()).unwrap(),
+            9
         );
     }
 }
