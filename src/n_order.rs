@@ -8,8 +8,13 @@ use crate::{utils::fast_factor, Error};
 ///
 /// The order of `a` modulo `n` is the smallest integer `k` such that `a**k` leaves a remainder of 1 with `n`.
 pub fn n_order(a: &Integer, n: &Integer) -> Result<Integer, Error> {
+    // Special case: n == 1, order is always 1
+    if *n == 1 {
+        return Ok(Integer::from(1));
+    }
+
     // Validate n > 1
-    if *n <= 1 {
+    if *n < 1 {
         return Err(Error::NotRelativelyPrime);
     }
 
@@ -37,8 +42,13 @@ pub fn n_order_with_factors(
     n: &Integer,
     n_factors: &HashMap<Integer, usize>,
 ) -> Result<Integer, Error> {
+    // Special case: n == 1, order is always 1
+    if *n == 1 {
+        return Ok(Integer::from(1));
+    }
+
     // Validate n > 1
-    if *n <= 1 {
+    if *n < 1 {
         return Err(Error::NotRelativelyPrime);
     }
 
@@ -119,11 +129,11 @@ mod tests {
 
     #[test]
     fn n_order_validation() {
-        // Test n <= 1 validation
-        assert_eq!(
-            n_order(&2.into(), &1.into()),
-            Err(Error::NotRelativelyPrime)
-        );
+        // Test n == 1 returns 1 (special case)
+        assert_eq!(n_order(&2.into(), &1.into()).unwrap(), 1);
+        assert_eq!(n_order(&0.into(), &1.into()).unwrap(), 1);
+
+        // Test n < 1 validation
         assert_eq!(
             n_order(&2.into(), &0.into()),
             Err(Error::NotRelativelyPrime)
