@@ -28,22 +28,29 @@ pub fn discrete_log_shanks_steps(
         return Err(Error::LogDoesNotExist);
     }
 
-    let m = order.sqrt().to_i32().unwrap() + 1;
+    let m = order.sqrt() + 1;
     let mut t = HashMap::new();
     let mut x = Integer::from(1);
-    for i in 0..m {
-        t.insert(x.clone(), i);
+
+    // Build table: baby steps
+    let mut i = Integer::ZERO;
+    while i < m {
+        t.insert(x.clone(), i.clone());
         x = x * &b % n;
+        i += 1;
     }
 
+    // Giant steps
     let z = b.invert(n).unwrap();
-    let z = z.pow_mod(&Integer::from(m), n).unwrap();
+    let z = z.pow_mod(&m, n).unwrap();
     let mut x = a;
-    for i in 0..m {
+    let mut i = Integer::ZERO;
+    while i < m {
         if let Some(j) = t.get(&x) {
-            return Ok(Integer::from(i * m + j));
+            return Ok(Integer::from(&i * &m + j));
         }
         x = x * &z % n;
+        i += 1;
     }
 
     Err(Error::LogDoesNotExist)
