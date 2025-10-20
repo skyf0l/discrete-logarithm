@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use n_order::n_order_with_factors;
 use rug::{integer::IsPrime, Integer};
-// mod index_calculus;
+mod index_calculus;
 mod n_order;
 mod pohlig_hellman;
 mod pollard_rho;
@@ -14,7 +14,7 @@ mod shanks_steps;
 mod trial_mul;
 mod utils;
 
-// pub use index_calculus::discrete_log_index_calculus;
+pub use index_calculus::discrete_log_index_calculus;
 pub use n_order::n_order;
 pub use pohlig_hellman::discrete_log_pohlig_hellman;
 pub use pollard_rho::discrete_log_pollard_rho;
@@ -61,7 +61,18 @@ pub fn discrete_log_with_order(
     if *order < 1000 {
         discrete_log_trial_mul(n, a, b, Some(order))
     } else if order.is_probably_prime(100) != IsPrime::No {
-        if *order < shanks_steps::MAX_ORDER {
+        // Shanks and Pollard rho are O(sqrt(order)) while index calculus is O(exp(2*sqrt(log(n)log(log(n)))))
+        // we compare the expected running times to determine the algorithm which is expected to be faster
+        let n_f64 = n.to_f64();
+        let order_f64 = order.to_f64();
+        let log_n = n_f64.ln();
+        let log_log_n = log_n.ln();
+        let log_order = order_f64.ln();
+
+        // Use index calculus if 4*sqrt(log(n)*log(log(n))) < log(order) - 10
+        if 4.0 * (log_n * log_log_n).sqrt() < log_order - 10.0 {
+            discrete_log_index_calculus(n, a, b, Some(order))
+        } else if *order < shanks_steps::MAX_ORDER {
             discrete_log_shanks_steps(n, a, b, Some(order))
         } else {
             discrete_log_pollard_rho(n, a, b, Some(order))
