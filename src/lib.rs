@@ -34,6 +34,15 @@ pub enum Error {
 
 /// Compute the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`).
 pub fn discrete_log(n: &Integer, a: &Integer, b: &Integer) -> Result<Integer, Error> {
+    // Validate input: n should be positive
+    if *n < 1 {
+        return Err(Error::LogDoesNotExist);
+    }
+    // Special case: n == 1
+    if *n == 1 {
+        return Ok(Integer::from(0));
+    }
+
     discrete_log_with_order(n, a, b, &n_order(b, n)?)
 }
 
@@ -46,6 +55,15 @@ pub fn discrete_log_with_factors(
     b: &Integer,
     n_factors: &HashMap<Integer, usize>,
 ) -> Result<Integer, Error> {
+    // Validate input: n should be positive
+    if *n < 1 {
+        return Err(Error::LogDoesNotExist);
+    }
+    // Special case: n == 1
+    if *n == 1 {
+        return Ok(Integer::from(0));
+    }
+
     discrete_log_with_order(n, a, b, &n_order_with_factors(b, n, n_factors)?)
 }
 
@@ -146,6 +164,25 @@ mod tests {
         assert_eq!(
             discrete_log(&n, &a, &b).unwrap(),
             Integer::from_str("495604594360692646132957963901411709").unwrap(),
+        );
+    }
+
+    #[test]
+    fn discrete_log_n_equals_one() {
+        // Special case: n == 1 should return 0
+        assert_eq!(discrete_log(&1.into(), &0.into(), &0.into()).unwrap(), 0);
+    }
+
+    #[test]
+    fn discrete_log_n_less_than_one() {
+        // Invalid case: n < 1 should return error
+        assert_eq!(
+            discrete_log(&0.into(), &1.into(), &2.into()),
+            Err(Error::LogDoesNotExist)
+        );
+        assert_eq!(
+            discrete_log(&(-1).into(), &1.into(), &2.into()),
+            Err(Error::LogDoesNotExist)
         );
     }
 }
