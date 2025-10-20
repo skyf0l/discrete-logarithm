@@ -13,25 +13,22 @@ Based on [rug](https://crates.io/crates/rug), it can use [arbitrary-precision nu
 ## Benchmarking
 
 This crate includes benchmarks comparing different bignum libraries:
-- `rug` (default, GMP bindings via MPFR)
-- `num-bigint` (pure Rust)
-- `ibig` (pure Rust)
-- `rust-gmp` (GMP bindings)
+- `rug` (default, GMP bindings via MPFR) - fastest
+- `rust-gmp` (GMP bindings) - similar performance to rug
+- `ibig` (pure Rust) - good performance, portable
+- `num-bigint` (pure Rust) - portable but slower
 
-To run benchmarks with different backends:
+To run benchmarks:
 
 ```bash
 # Default (rug only)
 cargo bench
 
-# With num-bigint
-cargo bench --features bench-num-bigint
-
-# With all backends
+# Compare all backends
 cargo bench --features bench-num-bigint,bench-ibig,bench-rust-gmp
 ```
 
-Note: The `ramp` crate requires nightly Rust and is not included in the benchmarks.
+See [BENCHMARKS.md](BENCHMARKS.md) for detailed benchmarking information and performance comparisons.
 
 ## License
 
