@@ -122,6 +122,9 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - uses: actions/download-artifact@v8
+      with:
+        name: instructions
+        path: instructions
 
     - uses: benchmark-action/github-action-benchmark@v1
       with:
