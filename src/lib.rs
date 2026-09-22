@@ -21,6 +21,14 @@ pub use pollard_rho::discrete_log_pollard_rho;
 pub use shanks_steps::discrete_log_shanks_steps;
 pub use trial_mul::discrete_log_trial_mul;
 
+/// Internals exposed for benchmarks only. Not part of the public API, no stability guarantees.
+#[cfg(feature = "bench")]
+#[doc(hidden)]
+pub mod bench {
+    pub use crate::index_calculus::is_smooth;
+    pub use crate::utils::fast_factor;
+}
+
 /// Discrete logarithm error
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
 pub enum Error {

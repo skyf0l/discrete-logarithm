@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use primal::Primes;
 use rug::Integer;
 
+/// Factors `n` by trial division by the first million primes: the remaining cofactor, if any,
+/// is assumed to be prime.
 pub fn fast_factor(n: &Integer) -> HashMap<Integer, usize> {
     let mut factors: HashMap<Integer, usize> = HashMap::new();
     let mut n: Integer = n.clone();

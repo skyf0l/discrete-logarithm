@@ -5,7 +5,7 @@ use crate::Error;
 
 /// Check if a number can be factored using the given factor base.
 /// Returns the exponents vector if smooth, None otherwise.
-fn is_smooth(mut n: Integer, factorbase: &[usize]) -> Option<Vec<u32>> {
+pub fn is_smooth(mut n: Integer, factorbase: &[usize]) -> Option<Vec<u32>> {
     let mut factors = vec![0u32; factorbase.len()];
 
     for (i, &p) in factorbase.iter().enumerate() {
