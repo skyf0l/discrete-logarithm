@@ -1,0 +1,141 @@
+name: Benchmarks
+
+# - Pull requests:
+#   - the base branch and the PR are measured in the same job, the comparison is written to
+#     the job summary, and the job fails on an instruction count regression (exact);
+#   - github-action-benchmark compares with the last main results stored on gh-pages and
+#     comments the table on the PR (updated on each push).
+# - Pushes to main: github-action-benchmark stores the results on the gh-pages branch, draws
+#   the history charts, and comments on the commit on regressions.
+
+# Only when the measured code can change.
+on:
+  push:
+    branches: [main]
+    paths: &paths
+    - 'src/**'
+    - 'benches/**'
+    - 'Cargo.toml'
+    - 'Cargo.lock'
+    # Renovate updates (GitHub Actions, config) are benchmarked like dependency updates.
+    - '.github/**'
+  pull_request:
+    branches: [main]
+    paths: *paths
+
+concurrency:
+  group: bench-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: never
+  # Instruction counts do not depend on parallelism.
+  GUNGRAUN_PARALLEL: auto
+
+jobs:
+  instructions:
+    name: Instruction counts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: swatinem/rust-cache@v2
+
+    - name: Install Valgrind
+      run: sudo apt-get update && sudo apt-get install -y valgrind
+
+    - name: Get gungraun version
+      id: gungraun
+      run: |
+        version=$(cargo metadata --locked --format-version 1 \
+          | jq -r '.packages[] | select(.name == "gungraun") | .version')
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: gungraun-runner@${{ steps.gungraun.outputs.version }}
+
+    # Never compare against results restored from the cache.
+    - name: Clean previous results
+      run: rm -rf target/gungraun
+
+    - name: Benchmark base branch
+      if: github.event_name == 'pull_request'
+      run: |
+        git checkout ${{ github.event.pull_request.base.sha }}
+        if [ -f benches/ops.rs ]; then
+          .github/scripts/install-gungraun-runner.sh
+          cargo bench --locked --features bench --bench ops --bench e2e -- --save-baseline=base
+        else
+          echo "No benchmarks on the base branch: nothing to compare with."
+        fi
+        git checkout ${{ github.sha }}
+        # Back to the runner version of the PR, if the base branch used another one.
+        .github/scripts/install-gungraun-runner.sh
+
+    - name: Benchmark
+      run: |
+        set -o pipefail
+        args=(--save-summary=json)
+        if [ "${{ github.event_name }}" = pull_request ]; then
+          args+=(--baseline=base --callgrind-limits='ir=2%')
+        fi
+        {
+          echo '## Instruction counts'
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+        status=0
+        cargo bench --locked --features bench --bench ops --bench e2e -- "${args[@]}" \
+          | tee -a "$GITHUB_STEP_SUMMARY" || status=$?
+        echo '```' >> "$GITHUB_STEP_SUMMARY"
+        exit $status
+
+    - name: Convert results
+      run: .github/scripts/gungraun-to-benchmark.sh > instructions.json
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: instructions
+        path: instructions.json
+
+  # Compares with the last results stored on gh-pages (from main) and, on main, stores the new
+  # results there.
+  report:
+    name: Report results
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [instructions]
+    # Fork PRs get a read-only token: they can't comment, the job summary above still works.
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      # Push to gh-pages and commit comments (main).
+      contents: write
+      # Comparison comment on PRs (a PR review, updated in place on each push).
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/download-artifact@v8
+
+    - uses: benchmark-action/github-action-benchmark@v1
+      with:
+        name: Instruction counts
+        tool: customSmallerIsBetter
+        output-file-path: instructions/instructions.json
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        # Only results from main are stored (pushed), PRs are only compared. The action always
+        # commits to a local gh-pages branch, only the push depends on this.
+        auto-push: ${{ github.event_name == 'push' }}
+        # Full comparison table on every PR (a PR review comment), only alerts on main.
+        comment-always: ${{ github.event_name == 'pull_request' }}
+        # Instruction counts are deterministic: any significant increase is real.
+        alert-threshold: '102%'
+        # PRs already get the full table: alert comments only on main.
+        comment-on-alert: ${{ github.event_name == 'push' }}
+        summary-always: true

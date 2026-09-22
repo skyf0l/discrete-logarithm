@@ -9,12 +9,22 @@ license = "MIT OR Apache-2.0"
 categories = ["algorithms", "mathematics"]
 keywords = ["number-theory", "cryptography", "bignum", "discrete-logarithm"]
 include = [
+  "benches/**/*",
   "src/**/*",
   "Cargo.toml",
   "LICENSE*",
   "README.md",
 ]
 readme = "README.md"
+
+[profile.bench]
+opt-level = 3
+debug = true
+
+[features]
+default = []
+# Exposes internals (`discrete_logarithm::bench`) for benchmarks. Not part of the public API.
+bench = []
 
 [dependencies]
 thiserror = "2.0"
@@ -24,3 +34,29 @@ primal = "0.3"
 version = "1.26"
 default-features = false
 features = ["integer", "rand"]
+
+[dev-dependencies]
+criterion = "0.8"
+# Must match the installed `gungraun-runner` version exactly.
+gungraun = "=0.19.4"
+
+[lib]
+bench = false
+
+# Instruction counts (Valgrind), deterministic: factorization, orders, each algorithm alone.
+[[bench]]
+name = "ops"
+harness = false
+required-features = ["bench"]
+
+# Instruction counts (Valgrind), deterministic: end-to-end `discrete_log`.
+[[bench]]
+name = "e2e"
+harness = false
+required-features = ["bench"]
+
+# Wall-clock time (criterion), local use only: too noisy for shared CI runners.
+[[bench]]
+name = "walltime"
+harness = false
+required-features = ["bench"]
