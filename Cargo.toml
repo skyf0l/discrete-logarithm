@@ -21,6 +21,13 @@ readme = "README.md"
 opt-level = 3
 debug = true
 
+# Wall-clock benchmarks with the optimizations of a final build (`cargo bench --profile
+# bench-lto ...`): instruction counts don't see their effects (inlining, allocator).
+[profile.bench-lto]
+inherits = "bench"
+lto = "fat"
+codegen-units = 1
+
 [features]
 default = []
 # Exposes internals (`discrete_logarithm::bench`) for benchmarks. Not part of the public API.

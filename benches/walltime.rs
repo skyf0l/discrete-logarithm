@@ -1,9 +1,17 @@
 //! Wall-clock benchmarks (criterion) of complete discrete logarithms, for local use.
 //!
-//! Complements the instruction-count benchmarks with effects Valgrind does not measure
-//! (cache, allocator, CPU-specific GMP code), on instances too large to run under Valgrind.
-//! Too noisy for shared CI runners: compare locally with
-//! `cargo bench --features bench --bench walltime -- --save-baseline before` then `-- --baseline before`.
+//! Complements the instruction-count benchmarks with what Valgrind does not see: cache and
+//! memory effects, CPU-specific GMP code, and the build profile (inlining across crates with
+//! `lto = "fat"`), on instances too large to run under Valgrind. Too noisy for shared CI
+//! runners.
+//!
+//! ```text
+//! # Default bench profile
+//! cargo bench --features bench --bench walltime -- --save-baseline before
+//! cargo bench --features bench --bench walltime -- --baseline before
+//! # With the optimizations of a final build (`lto = "fat"`, `codegen-units = 1`)
+//! cargo bench --profile bench-lto --features bench --bench walltime
+//! ```
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use discrete_logarithm::discrete_log;
