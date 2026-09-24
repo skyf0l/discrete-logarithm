@@ -36,9 +36,15 @@ git checkout -    && cargo bench --features bench --bench ops --bench e2e -- --b
 
 ## Wall-clock time
 
+Instruction counts don't see cache effects nor the build profile: inlining across crates with
+`lto = "fat"`, less register pressure with `codegen-units = 1`. `walltime.rs` measures the two
+largest instances, with the default profile or with the `bench-lto` profile (`bench` +
+`lto = "fat"`, `codegen-units = 1`):
+
 ```sh
 cargo bench --features bench --bench walltime -- --save-baseline before
 cargo bench --features bench --bench walltime -- --baseline before
+cargo bench --profile bench-lto --features bench --bench walltime
 ```
 
 ## CI
@@ -47,7 +53,10 @@ cargo bench --features bench --bench walltime -- --baseline before
 
 - On pull requests, the base branch and the PR run in the same job and are compared there. The
   job fails if an instruction count grows by more than 2%.
-- On pull requests, github-action-benchmark also comments a comparison with the last `main` results
-  on the PR (updated on each push).
+- On pull requests, one comment compares the PR with its base branch, worst changes first and
+  unchanged benchmarks collapsed (updated on each push). A regression fails the job but still
+  reports the results.
+- The benchmarks are built without debug info in CI (`CARGO_PROFILE_BENCH_DEBUG=false`): half
+  the build time, same instruction counts.
 - On pushes to `main`, results are stored on the `gh-pages` branch by
   [github-action-benchmark](https://github.com/benchmark-action/github-action-benchmark).
