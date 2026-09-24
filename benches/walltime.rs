@@ -19,13 +19,20 @@ use rug::Integer;
 use std::{hint::black_box, str::FromStr};
 
 /// `(name, n, a, b)`, solved with `discrete_log`.
-const INSTANCES: [(&str, &str, &str, &str); 2] = [
+const INSTANCES: [(&str, &str, &str, &str); 3] = [
     // Large prime order (about 2^47): Pollard's rho.
     (
         "large_prime_order",
         "265390227570863",
         "184500076053622",
         "2",
+    ),
+    // Two prime factors above the trial division bound: Pollard's rho factors the modulus.
+    (
+        "two_large_primes",
+        "1125902456980891",
+        "55959216458270",
+        "3",
     ),
     // Large modulus, smooth order: Pohlig-Hellman on large numbers.
     (

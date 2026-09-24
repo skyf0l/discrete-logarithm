@@ -14,25 +14,18 @@ pub fn discrete_log_trial_mul(
     b: &Integer,
     order: Option<&Integer>,
 ) -> Result<Integer, Error> {
-    let a = a.clone() % n;
-    let b = b.clone() % n;
-    let order = match order {
-        Some(order) => order,
-        None => n,
-    };
+    let a = a.clone().modulo(n);
+    let b = b.clone().modulo(n);
+    let order = order.unwrap_or(n);
 
+    // An order that does not fit in a `usize` is out of reach anyway.
+    let steps = order.to_usize().unwrap_or(usize::MAX);
     let mut x = Integer::from(1);
-    let mut i = 0;
-    loop {
+    for i in 0..steps {
         if x == a {
             return Ok(Integer::from(i));
         }
         x = x * &b % n;
-
-        i += 1;
-        if i == *order {
-            break;
-        }
     }
 
     Err(Error::LogDoesNotExist)
@@ -65,6 +58,29 @@ mod tests {
             discrete_log_trial_mul(&191.into(), &(Integer::from(19).pow(123)), &19.into(), None)
                 .unwrap(),
             123
+        );
+        // The order of the base bounds the search.
+        assert_eq!(
+            discrete_log_trial_mul(&587.into(), &128.into(), &2.into(), Some(&293.into())).unwrap(),
+            7
+        );
+        assert_eq!(
+            discrete_log_trial_mul(&587.into(), &128.into(), &2.into(), Some(&7.into())),
+            Err(Error::LogDoesNotExist)
+        );
+        // Bases that are not relatively prime with the modulus are searched all the same.
+        assert_eq!(
+            discrete_log_trial_mul(&9.into(), &0.into(), &3.into(), None).unwrap(),
+            2
+        );
+        assert_eq!(
+            discrete_log_trial_mul(&10.into(), &3.into(), &2.into(), None),
+            Err(Error::LogDoesNotExist)
+        );
+        // Negative operands are reduced modulo `n`.
+        assert_eq!(
+            discrete_log_trial_mul(&587.into(), &(-459).into(), &(-585).into(), None).unwrap(),
+            7
         );
     }
 }

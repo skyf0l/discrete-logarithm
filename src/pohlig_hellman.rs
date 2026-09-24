@@ -1,10 +1,8 @@
+use std::collections::HashMap;
+
 use rug::{ops::Pow, Integer};
 
-use crate::{
-    discrete_log_with_order, n_order,
-    utils::{crt, fast_factor},
-    Error,
-};
+use crate::{crt::crt, discrete_log_with_prime_order, factor::fast_factor, n_order, Error};
 
 /// Pohlig-Hellman algorithm for computing the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`).
 ///
@@ -17,40 +15,64 @@ pub fn discrete_log_pohlig_hellman(
     b: &Integer,
     order: Option<&Integer>,
 ) -> Result<Integer, Error> {
-    let a = a.clone() % n;
-    let b = b.clone() % n;
     let order = match order {
         Some(order) => order.clone(),
-        None => n_order(&b, n)?,
+        None => n_order(b, n)?,
     };
-
     let order_factors = fast_factor(&order);
-    let mut residues = (0..order_factors.len())
-        .map(|_| Integer::from(0))
-        .collect::<Vec<_>>();
+    solve(n, a, b, &order, &order_factors)
+}
 
-    for (i, (pi, ri)) in order_factors.iter().enumerate() {
+/// Pohlig-Hellman algorithm for computing the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`).
+///
+/// Same as [`discrete_log_pohlig_hellman`] with the prime factorization of the order known: it
+/// is the factorization the algorithm is built on, so nothing is left to compute.
+pub fn discrete_log_pohlig_hellman_with_factors(
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: &Integer,
+    order_factors: &HashMap<Integer, usize>,
+) -> Result<Integer, Error> {
+    solve(n, a, b, order, order_factors)
+}
+
+fn solve(
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: &Integer,
+    order_factors: &HashMap<Integer, usize>,
+) -> Result<Integer, Error> {
+    let a = a.clone().modulo(n);
+    let b = b.clone().modulo(n);
+
+    // One residue per prime power of the order, from a discrete logarithm modulo each prime.
+    let mut residues = Vec::with_capacity(order_factors.len());
+    let mut modulli = Vec::with_capacity(order_factors.len());
+
+    for (pi, ri) in order_factors {
+        let mut residue = Integer::new();
         for j in 0..*ri as u32 {
-            let gj = b.clone().pow_mod(&residues[i], n).unwrap();
-            let aj = (&a * gj.clone().invert(n).unwrap())
-                .pow_mod(&(&order / pi.clone().pow(j + 1)), n)
+            let gj = b
+                .clone()
+                .pow_mod(&residue, n)
+                .unwrap()
+                .invert(n)
+                .map_err(|_| Error::NotRelativelyPrime)?;
+            let aj = (&a * gj)
+                .pow_mod(&(order.clone() / pi.clone().pow(j + 1)), n)
                 .unwrap();
-            let bj = b.clone().pow_mod(&(&order / pi.clone()), n).unwrap();
-            let cj = discrete_log_with_order(n, &aj, &bj, pi)?;
-            residues[i] += &cj * pi.clone().pow(j);
+            let bj = b.clone().pow_mod(&(order.clone() / pi.clone()), n).unwrap();
+            // `pi` is prime: the sub-problem never comes back to Pohlig-Hellman.
+            let cj = discrete_log_with_prime_order(n, &aj, &bj, pi)?;
+            residue += cj * pi.clone().pow(j);
         }
+        residues.push(residue);
+        modulli.push(pi.clone().pow(*ri as u32));
     }
 
-    let modulis = order_factors
-        .iter()
-        .map(|(pi, ri)| pi.clone().pow(*ri as u32))
-        .collect::<Vec<_>>();
-
-    if let Some(d) = crt(&residues, &modulis) {
-        Ok(d)
-    } else {
-        Err(Error::LogDoesNotExist)
-    }
+    crt(&residues, &modulli).ok_or(Error::LogDoesNotExist)
 }
 
 #[cfg(test)]
@@ -60,7 +82,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pollard_rho() {
+    fn pohlig_hellman() {
         assert_eq!(
             discrete_log_pohlig_hellman(
                 &98376431.into(),
@@ -100,6 +122,30 @@ mod tests {
             )
             .unwrap(),
             444
+        );
+    }
+
+    #[test]
+    fn known_order_factors() {
+        // The factorization of the order is the only thing the algorithm needs.
+        let n = Integer::from(32942478);
+        let order = Integer::from(2745206);
+        let order_factors = fast_factor(&order);
+        assert_eq!(
+            discrete_log_pohlig_hellman_with_factors(
+                &n,
+                &(Integer::from(11).pow(98)),
+                &11.into(),
+                &order,
+                &order_factors
+            )
+            .unwrap(),
+            98
+        );
+        assert_eq!(
+            discrete_log_pohlig_hellman(&n, &(Integer::from(11).pow(98)), &11.into(), Some(&order))
+                .unwrap(),
+            98
         );
     }
 }

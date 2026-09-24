@@ -10,9 +10,9 @@ mod common;
 
 use common::{check_factors, int, prime_bits, Instance, DIGITS_108, SEED};
 use discrete_logarithm::{
-    bench::{fast_factor, is_smooth},
-    discrete_log_index_calculus, discrete_log_pohlig_hellman, discrete_log_pollard_rho,
-    discrete_log_shanks_steps, n_order, Error,
+    bench::{element_order_with_factors, fast_factor, is_smooth},
+    discrete_log_index_calculus_with_seed, discrete_log_pohlig_hellman,
+    discrete_log_pollard_rho_with_seed, discrete_log_shanks_steps, n_order, Error,
 };
 use gungraun::{library_benchmark, library_benchmark_group, main};
 use primal::Primes;
@@ -37,15 +37,35 @@ fn smooth() -> Integer {
     })
 }
 
-/// Small factor times a prime larger than every trial divisor: the worst case of trial division.
+/// Small factor times a prime larger than every trial divisor: trial division stops at the
+/// square root, the cofactor is recognized as prime.
 fn large_prime_cofactor() -> Integer {
     prime_bits(40, SEED) * 587u32
+}
+
+/// Two primes above the trial division bound: only Pollard's rho splits them.
+fn two_large_primes() -> Integer {
+    Integer::from(33554467u32) * 33554473u32
+}
+
+/// A large prime squared: Pollard's rho never splits it, the square root is factored instead.
+fn large_prime_squared() -> Integer {
+    Integer::from(33554467u32).square()
+}
+
+/// `p - 1` of the 108-digit instance: prime powers just above the trial division bound, the
+/// numbers the order of a base modulo a large prime is made of.
+fn medium_prime_powers() -> Integer {
+    int(DIGITS_108.0) - 1u32
 }
 
 #[library_benchmark]
 #[bench::small(int("587"))]
 #[bench::smooth(smooth())]
 #[bench::large_prime_cofactor(large_prime_cofactor())]
+#[bench::two_large_primes(two_large_primes())]
+#[bench::large_prime_squared(large_prime_squared())]
+#[bench::medium_prime_powers(medium_prime_powers())]
 fn factor(n: Integer) -> HashMap<Integer, usize> {
     let factors = black_box(fast_factor(black_box(&n)));
     check_factors(&n, &factors);
@@ -53,8 +73,11 @@ fn factor(n: Integer) -> HashMap<Integer, usize> {
 }
 
 /// Factor base of the index calculus for `n = 999231337607`: the primes below 508.
-fn factorbase() -> Vec<usize> {
-    Primes::all().take_while(|&p| p < 508).collect()
+fn factorbase() -> Vec<u32> {
+    Primes::all()
+        .take_while(|&p| p < 508)
+        .map(|p| p as u32)
+        .collect()
 }
 
 /// A number of 39 bits (the size of the numbers tested), smooth over the factor base.
@@ -71,7 +94,7 @@ fn not_smooth_number() -> Integer {
 #[library_benchmark]
 #[bench::smooth((smooth_number(), factorbase()))]
 #[bench::not_smooth((not_smooth_number(), factorbase()))]
-fn index_calculus_smoothness(input: (Integer, Vec<usize>)) -> Option<Vec<u32>> {
+fn index_calculus_smoothness(input: (Integer, Vec<u32>)) -> Option<Vec<u32>> {
     let (n, factorbase) = black_box(input);
     black_box(is_smooth(n, &factorbase))
 }
@@ -90,9 +113,55 @@ fn order(input: (Integer, Integer)) -> Integer {
     black_box(n_order(a, n).unwrap())
 }
 
-library_benchmark_group!(name = n_order_group, benchmarks = [order]);
+/// `(n, b, factorization of n)`: what the order of `b` is computed from.
+fn order_input(n: &str, b: &str) -> (Integer, Integer, HashMap<Integer, usize>) {
+    let n = int(n);
+    let n_factors = fast_factor(&n);
+    (n, int(b), n_factors)
+}
+
+// The order of the base and its factorization, computed in one pass: what `discrete_log` spends
+// most of its time on before it even chooses an algorithm.
+#[library_benchmark]
+#[bench::composite(order_input("32942478", "11"))]
+#[bench::digits_108(order_input(DIGITS_108.0, DIGITS_108.2))]
+fn element_order(
+    input: (Integer, Integer, HashMap<Integer, usize>),
+) -> (Integer, HashMap<Integer, usize>) {
+    let (n, b, n_factors) = black_box(&input);
+    let (order, order_factors) = black_box(element_order_with_factors(n, b, n_factors));
+    assert_eq!(
+        b.clone().pow_mod(&order, n).unwrap(),
+        1,
+        "wrong order {order} of {b} modulo {n}"
+    );
+    check_factors(&order, &order_factors);
+    (order, order_factors)
+}
+
+library_benchmark_group!(name = n_order_group, benchmarks = [order, element_order]);
 
 type Algorithm = fn(&Integer, &Integer, &Integer, Option<&Integer>) -> Result<Integer, Error>;
+
+/// Pollard's rho, seeded: the walks are the same in every run.
+fn pollard_rho(
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: Option<&Integer>,
+) -> Result<Integer, Error> {
+    discrete_log_pollard_rho_with_seed(n, a, b, order, SEED)
+}
+
+/// Index calculus, seeded: the relations are looked for in the same order in every run.
+fn index_calculus_seeded(
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: Option<&Integer>,
+) -> Result<Integer, Error> {
+    discrete_log_index_calculus_with_seed(n, a, b, order, SEED)
+}
 
 /// Solves every target of `instance` with `algorithm`, the order given, and checks the results.
 fn solve(algorithm: Algorithm, instance: &Instance) -> Vec<Integer> {
@@ -127,14 +196,14 @@ fn prime_order_shanks_steps(instance: Instance) -> Vec<Integer> {
 #[bench::bits_28(Instance::safe_prime(28, SEED))]
 #[bench::bits_34(Instance::safe_prime(34, SEED))]
 fn prime_order_pollard_rho(instance: Instance) -> Vec<Integer> {
-    solve(discrete_log_pollard_rho, &instance)
+    solve(pollard_rho, &instance)
 }
 
 #[library_benchmark]
 #[bench::bits_28(Instance::safe_prime(28, SEED))]
 #[bench::bits_34(Instance::safe_prime(34, SEED))]
 fn prime_order_index_calculus(instance: Instance) -> Vec<Integer> {
-    solve(discrete_log_index_calculus, &instance)
+    solve(index_calculus_seeded, &instance)
 }
 
 // The index calculus instances of the tests.
@@ -150,7 +219,7 @@ fn prime_order_index_calculus(instance: Instance) -> Vec<Integer> {
     "645239603"
 ))]
 fn index_calculus(instance: Instance) -> Vec<Integer> {
-    solve(discrete_log_index_calculus, &instance)
+    solve(index_calculus_seeded, &instance)
 }
 
 library_benchmark_group!(

@@ -1,30 +1,7 @@
-use std::collections::HashMap;
-
-use primal::Primes;
 use rug::Integer;
 
-/// Factors `n` by trial division by the first million primes: the remaining cofactor, if any,
-/// is assumed to be prime.
-pub fn fast_factor(n: &Integer) -> HashMap<Integer, usize> {
-    let mut factors: HashMap<Integer, usize> = HashMap::new();
-    let mut n: Integer = n.clone();
-    for prime in Primes::all().take(1_000_000) {
-        let prime = Integer::from(prime);
-        if n.clone().div_rem(prime.clone()).1 == 0 {
-            while n.clone().div_rem(prime.clone()).1 == 0 {
-                n /= &prime;
-                *factors.entry(prime.clone()).or_insert(0) += 1;
-            }
-        }
-    }
-
-    if n != 1 {
-        *factors.entry(n).or_insert(0) += 1;
-    }
-
-    factors
-}
-
+/// Chinese remainder theorem: the smallest non negative `x` with `x = residues[i] (mod
+/// modulli[i])` for every `i`, `None` if the moduli are not coprime.
 pub fn crt(residues: &[Integer], modulli: &[Integer]) -> Option<Integer> {
     let prod = modulli.iter().product::<Integer>();
     let mut sum = Integer::ZERO;
