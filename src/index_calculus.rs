@@ -5,22 +5,22 @@ use crate::Error;
 
 /// Check if a number can be factored using the given factor base.
 /// Returns the exponents vector if smooth, None otherwise.
-pub fn is_smooth(mut n: Integer, factorbase: &[usize]) -> Option<Vec<u32>> {
+pub fn is_smooth(mut n: Integer, factorbase: &[u32]) -> Option<Vec<u32>> {
     let mut factors = vec![0u32; factorbase.len()];
 
-    for (i, &p) in factorbase.iter().enumerate() {
-        let prime = Integer::from(p);
-        while n.is_divisible(&prime) {
-            factors[i] += 1;
-            n /= &prime;
+    for (exponent, &p) in factors.iter_mut().zip(factorbase) {
+        // Nothing is left to divide.
+        if n == 1 {
+            break;
+        }
+        while n.is_divisible_u(p) {
+            *exponent += 1;
+            n.div_exact_u_mut(p);
         }
     }
 
-    if n != 1 {
-        None // the number doesn't factor completely over the factor base
-    } else {
-        Some(factors)
-    }
+    // The number does not factor completely over the factor base.
+    (n == 1).then_some(factors)
 }
 
 /// Index Calculus algorithm for computing the discrete logarithm of `a` in base `b` modulo `n`.
@@ -53,8 +53,35 @@ pub fn discrete_log_index_calculus(
     b: &Integer,
     order: Option<&Integer>,
 ) -> Result<Integer, Error> {
-    let a = a.clone() % n;
-    let b = b.clone() % n;
+    solve(n, a, b, order, &mut RandState::new())
+}
+
+/// Index Calculus algorithm for computing the discrete logarithm of `a` in base `b` modulo `n`.
+///
+/// Same as [`discrete_log_index_calculus`], with the random generator seeded with `seed`: the
+/// same seed always looks for the relations in the same order, and a retry with another seed
+/// looks for others.
+pub fn discrete_log_index_calculus_with_seed(
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: Option<&Integer>,
+    seed: u64,
+) -> Result<Integer, Error> {
+    let mut rand_state = RandState::new();
+    rand_state.seed(&Integer::from(seed));
+    solve(n, a, b, order, &mut rand_state)
+}
+
+fn solve(
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: Option<&Integer>,
+    rand_state: &mut RandState<'_>,
+) -> Result<Integer, Error> {
+    let a = a.clone().modulo(n);
+    let b = b.clone().modulo(n);
 
     let order = match order {
         Some(order) => order.clone(),
@@ -67,10 +94,17 @@ pub fn discrete_log_index_calculus(
     let log_n = n_f64.ln();
     let log_log_n = log_n.ln();
     let b_bound = (0.5 * (log_n * log_log_n).sqrt() * (1.0 + 1.0 / log_log_n)).exp();
-    let b_bound = b_bound as usize;
+    // Such a factorbase cannot be sieved, let alone held in memory.
+    if b_bound > u32::MAX as f64 {
+        return Err(Error::LogDoesNotExist);
+    }
+    let b_bound = b_bound as u32;
 
     // Compute the factorbase - all primes up to B (exclusive, matching sympy's primerange(B))
-    let factorbase: Vec<usize> = Primes::all().take_while(|&p| p < b_bound).collect();
+    let factorbase: Vec<u32> = Primes::all()
+        .take_while(|&p| p < b_bound as usize)
+        .map(|p| p as u32)
+        .collect();
     let lf = factorbase.len();
 
     if lf == 0 {
@@ -78,7 +112,7 @@ pub fn discrete_log_index_calculus(
     }
 
     // Maximum number of tries to find a relation
-    let max_tries = (5 * b_bound * b_bound) as u64;
+    let max_tries = 5 * u128::from(b_bound) * u128::from(b_bound);
 
     // First, find a relation for a
     let mut relationa: Option<(Vec<Integer>, Integer)> = None;
@@ -111,12 +145,11 @@ pub fn discrete_log_index_calculus(
     let mut k = 1; // number of relations found
     let mut kk = 0; // number of consecutive failures
 
-    let mut rand_state = RandState::new();
-    let order_minus_1: Integer = order.clone() - 1;
+    let order_minus_1: Integer = order.clone() - 1u32;
 
     while k < 3 * lf && kk < max_tries {
         // Generate random exponent x in [1, order-1]
-        let x = order_minus_1.clone().random_below(&mut rand_state) + 1;
+        let x = order_minus_1.clone().random_below(rand_state) + 1u32;
 
         // Compute b^x mod n
         let bx = b.clone().pow_mod(&x, n).unwrap();
@@ -214,18 +247,22 @@ mod tests {
 
     use super::*;
 
+    fn int(s: &str) -> Integer {
+        Integer::from_str(s).unwrap()
+    }
+
     #[test]
     fn index_calculus() {
         // Test case from sympy documentation
         assert_eq!(
             discrete_log_index_calculus(
-                &Integer::from_str("24570203447").unwrap(),
-                &Integer::from_str("23859756228").unwrap(),
+                &int("24570203447"),
+                &int("23859756228"),
                 &2.into(),
-                Some(&Integer::from_str("12285101723").unwrap())
+                Some(&int("12285101723"))
             )
             .unwrap(),
-            Integer::from_str("4519867240").unwrap()
+            int("4519867240")
         );
     }
 
@@ -242,5 +279,74 @@ mod tests {
             .unwrap(),
             9
         );
+    }
+
+    #[test]
+    fn sympy_cases() {
+        for (n, a, b, order, x) in [
+            ("983", "948", "2", "491", "183"),
+            ("633383", "21794", "2", "316691", "68048"),
+            ("941762639", "68822582", "2", "470881319", "338029275"),
+            (
+                "999231337607",
+                "888188918786",
+                "2",
+                "499615668803",
+                "142811376514",
+            ),
+            // A base much larger than the primes of the factorbase.
+            (
+                "47747730623",
+                "19410045286",
+                "43425105668",
+                "645239603",
+                "590504662",
+            ),
+        ] {
+            assert_eq!(
+                discrete_log_index_calculus(&int(n), &int(a), &int(b), Some(&int(order))).unwrap(),
+                int(x),
+                "n = {n}"
+            );
+        }
+    }
+
+    #[test]
+    fn seeded() {
+        // The same seed always looks for the same relations, and the result does not depend on it.
+        for seed in [0, 1, 42] {
+            assert_eq!(
+                discrete_log_index_calculus_with_seed(
+                    &int("941762639"),
+                    &int("68822582"),
+                    &2.into(),
+                    Some(&int("470881319")),
+                    seed
+                )
+                .unwrap(),
+                int("338029275")
+            );
+        }
+    }
+
+    #[test]
+    fn no_order() {
+        // The order is required.
+        assert_eq!(
+            discrete_log_index_calculus(&int("24570203447"), &int("23859756228"), &2.into(), None),
+            Err(Error::LogDoesNotExist)
+        );
+    }
+
+    #[test]
+    fn smoothness() {
+        let factorbase = [2, 3, 5, 7];
+        assert_eq!(
+            is_smooth(Integer::from(2 * 2 * 3 * 7 * 7), &factorbase),
+            Some(vec![2, 1, 0, 2])
+        );
+        assert_eq!(is_smooth(Integer::from(1), &factorbase), Some(vec![0; 4]));
+        assert_eq!(is_smooth(Integer::from(11), &factorbase), None);
+        assert_eq!(is_smooth(Integer::from(2 * 11), &factorbase), None);
     }
 }

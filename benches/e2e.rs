@@ -33,6 +33,8 @@ fn power(n: &str, b: u32, x: u32) -> (Integer, Integer, Integer) {
 // Composite modulus, composite order: Pohlig-Hellman.
 #[bench::n_32942478(power("32942478", 11, 127))]
 #[bench::n_5779((int("5779"), int("3528"), int("6215")))]
+// Two prime factors above the trial division bound: Pollard's rho factors the modulus.
+#[bench::two_large_primes((int("1125902456980891"), int("55959216458270"), int("3")))]
 // Large modulus, smooth order: Pohlig-Hellman on large numbers.
 #[bench::digits_108((int(DIGITS_108.0), int(DIGITS_108.1), int(DIGITS_108.2)))]
 fn solve(input: (Integer, Integer, Integer)) -> Integer {

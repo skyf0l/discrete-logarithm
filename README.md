@@ -37,6 +37,27 @@ The library automatically selects the optimal algorithm:
 
 This automatic selection ensures optimal performance across different problem sizes and characteristics.
 
+### Group Order
+
+The order of `b` and its prime factorization are computed in one pass: the order of the group of
+units (the totient of `n`) is built from the factorization of `n` and of every `p - 1`, then the
+primes the order of `b` does not need are divided out. Pohlig-Hellman, which works on that
+factorization, does not have to compute it again, and the order needs no primality test.
+
+Factoring is done by trial division by the primes below 65536, then by Brent's variant of
+Pollard's rho on the cofactor; the root of a perfect power is factored instead of the power
+itself. Moduli with two prime factors above ~10^12 are out of reach, as factoring them is the
+general factoring problem: pass what you know with `discrete_log_with_factors`,
+`discrete_log_with_order` or `discrete_log_with_prime_order` to skip this step.
+
+`n` must be positive, and modulo 1 the logarithm is always 0. Bases that share a factor with the
+modulus are not rejected: their powers are not a subgroup of the units, so the search is bounded
+by the order of the group instead.
+
+The randomized algorithms (Pollard's rho, index calculus) have seeded variants
+(`discrete_log_pollard_rho_with_seed`, `discrete_log_index_calculus_with_seed`): the same seed
+always makes the same choices, and a retry with another seed makes other ones.
+
 ## License
 
 Licensed under either of

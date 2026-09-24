@@ -6,13 +6,14 @@ measured separately:
 
 | What | Where | Measure | CI |
 |---|---|---|---|
-| Building blocks: factorization, `n_order`, index calculus smoothness test | `ops.rs` | Instruction counts (Valgrind), deterministic | ✅ |
+| Building blocks: factorization (trial division, Pollard's rho, perfect powers), `n_order`, order of the base in one pass, index calculus smoothness test | `ops.rs` | Instruction counts (Valgrind), deterministic | ✅ |
 | Each algorithm alone, the order given: the prime-order algorithms on the same instances, index calculus, Pohlig-Hellman | `ops.rs` | Instruction counts (Valgrind), deterministic | ✅ |
 | Complete `discrete_log` on the instances of the tests | `e2e.rs` | Instruction counts (Valgrind), deterministic | ✅ |
 | Complete `discrete_log` on larger instances | `walltime.rs` | Wall-clock time (criterion) | ❌ too noisy on shared runners |
 
-Pollard's rho and index calculus are randomized but always draw the same random numbers, so
-their instances solve several targets to average out the luck.
+Pollard's rho and index calculus are randomized: the benchmarks use their seeded variants, so
+every run draws the same numbers, and their instances solve several targets to average out the
+luck of one draw.
 
 ## Instruction counts
 
@@ -37,7 +38,7 @@ git checkout -    && cargo bench --features bench --bench ops --bench e2e -- --b
 ## Wall-clock time
 
 Instruction counts don't see cache effects nor the build profile: inlining across crates with
-`lto = "fat"`, less register pressure with `codegen-units = 1`. `walltime.rs` measures the two
+`lto = "fat"`, less register pressure with `codegen-units = 1`. `walltime.rs` measures the
 largest instances, with the default profile or with the `bench-lto` profile (`bench` +
 `lto = "fat"`, `codegen-units = 1`):
 
