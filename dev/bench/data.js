@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790264048485,
+  "lastUpdate": 1790315007416,
   "repoUrl": "https://github.com/skyf0l/discrete-logarithm",
   "entries": {
     "Instruction counts": [
@@ -153,6 +153,160 @@ window.BENCHMARK_DATA = {
           {
             "name": "ops::prime_order::prime_order_shanks_steps::bits_34",
             "value": 493353182,
+            "unit": "instructions"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "distinct": true,
+          "id": "5be443433972e188926ce20290839d4cdcd81538",
+          "message": "chore(deps): update rust crate thiserror to v2.0.21",
+          "timestamp": "2026-09-25T05:37:13Z",
+          "tree_id": "0688e79cce586fc064976a816d7c49693a63b88b",
+          "url": "https://github.com/skyf0l/discrete-logarithm/commit/5be443433972e188926ce20290839d4cdcd81538"
+        },
+        "date": 1790315006915,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "e2e::e2e::solve::digits_108",
+            "value": 3238011496,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_2456747",
+            "value": 2004054463,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_32942478",
+            "value": 4996646849,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_5779",
+            "value": 2992455141,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_587",
+            "value": 1994911641,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::digits_108",
+            "value": 1058522762,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::n_32942478",
+            "value": 997663158,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::large_prime_cofactor",
+            "value": 1021496420,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::small",
+            "value": 997444331,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::smooth",
+            "value": 997495156,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::index_calculus_smoothness::not_smooth",
+            "value": 31271,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::index_calculus_smoothness::smooth",
+            "value": 34740,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::composite",
+            "value": 3998983487,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::prime",
+            "value": 2001508345,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::prime_power",
+            "value": 1994969483,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_47747730623",
+            "value": 459568624,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_633383",
+            "value": 4406352,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_941762639",
+            "value": 118723515,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_983",
+            "value": 1719804,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_999231337607",
+            "value": 1705613609,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_28",
+            "value": 189535747,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_34",
+            "value": 1398320055,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_28",
+            "value": 212784192,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_34",
+            "value": 1623899704,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_28",
+            "value": 88069244,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_34",
+            "value": 493298409,
             "unit": "instructions"
           }
         ]
