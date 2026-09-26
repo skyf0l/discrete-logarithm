@@ -4,6 +4,9 @@ name: Benchmarks
 #   - the base branch and the PR are measured in the same job, the comparison is written to
 #     the job summary, and the job fails on an instruction count regression (exact);
 #   - one PR comment with the comparison, worst changes first (updated on each push);
+#   - whatever was measured is always published, even when a benchmark fails or the baseline
+#     could not be measured: the job still goes red, but the numbers are in the summary, in the
+#     comment and on the history charts;
 #   - github-action-benchmark compares with the last main results stored on gh-pages, in the
 #     job summary.
 # - Pushes to main: github-action-benchmark stores the results on the gh-pages branch, draws
@@ -43,8 +46,12 @@ jobs:
       # change the instruction counts.
       CARGO_PROFILE_BENCH_DEBUG: 'false'
     outputs:
-      # Results were uploaded (even with regressions): the report job can run.
+      # Results were uploaded (even with regressions or failures): the report job can run.
       uploaded: ${{ steps.upload.outcome == 'success' }}
+      # How many benchmarks were measured, so the report job can skip an empty history point.
+      results: ${{ steps.convert.outputs.count }}
+      # A benchmark failed, as opposed to regressing: the PR comment says so.
+      failed: ${{ steps.bench.outputs.failed }}
 
     steps:
     - uses: actions/checkout@v7
@@ -77,7 +84,8 @@ jobs:
         git checkout ${{ github.event.pull_request.base.sha }}
         if [ -f benches/ops.rs ]; then
           .github/scripts/install-gungraun-runner.sh
-          cargo bench --locked --features bench --bench ops --bench e2e -- --save-baseline=base
+          cargo bench --locked --features bench --bench ops --bench e2e -- --save-baseline=base \
+            || echo "::warning::the base branch benchmarks failed, the comparison has no baseline"
         else
           echo "No benchmarks on the base branch: nothing to compare with."
         fi
@@ -85,8 +93,8 @@ jobs:
         # Back to the runner version of the PR, if the base branch used another one.
         .github/scripts/install-gungraun-runner.sh
 
-    # Regressions (exit code 3) don't stop the job: results are still uploaded and reported on
-    # the PR, and the job fails in its last step. Any other error fails immediately.
+    # Neither a regression (exit code 3) nor a failing benchmark stops the job: what was measured
+    # is converted, commented and uploaded, and the job fails in its last step.
     - name: Benchmark
       id: bench
       run: |
@@ -97,6 +105,7 @@ jobs:
         fi
         echo '## Instruction counts' >> "$GITHUB_STEP_SUMMARY"
         regressed=false
+        failed=false
         # One bench at a time: cargo stops at the first failing bench target.
         for bench in e2e ops; do
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -107,30 +116,50 @@ jobs:
           case $status in
             0) ;;
             3) regressed=true ;;
-            *) exit "$status" ;;
+            *)
+              failed=true
+              echo "::error::the $bench benchmarks failed with status $status"
+              ;;
           esac
         done
-        echo "regressed=$regressed" >> "$GITHUB_OUTPUT"
+        {
+          echo "regressed=$regressed"
+          echo "failed=$failed"
+        } >> "$GITHUB_OUTPUT"
 
+    # From here on, `!cancelled()` rather than the default `success()`: a failed run still has
+    # results worth publishing, and they are what says how far it got.
     - name: Convert results
-      run: .github/scripts/gungraun-to-benchmark.sh > instructions.json
+      id: convert
+      if: '!cancelled()'
+      run: |
+        .github/scripts/gungraun-to-benchmark.sh > instructions.json
+        count=$(jq length instructions.json)
+        echo "count=$count" >> "$GITHUB_OUTPUT"
+        echo "$count benchmarks measured."
 
     - name: Build PR comment
-      if: github.event_name == 'pull_request'
+      if: '!cancelled() && github.event_name == ''pull_request'''
       run: .github/scripts/gungraun-comment.sh target/gungraun 2 0.5 > instructions.md
 
     - uses: actions/upload-artifact@v7
       id: upload
+      if: '!cancelled()'
       with:
         name: instructions
         path: |
           instructions.json
           instructions.md
 
-    - name: Fail on regressions
-      if: steps.bench.outputs.regressed == 'true'
+    - name: Fail on regressions or failures
+      if: steps.bench.outputs.regressed == 'true' || steps.bench.outputs.failed == 'true'
       run: |
-        echo "::error::Instruction count regressions over the 2% limit, see the job summary or the PR comment"
+        if [ '${{ steps.bench.outputs.regressed }}' = true ]; then
+          echo "::error::Instruction count regressions over the 2% limit, see the job summary or the PR comment"
+        fi
+        if [ '${{ steps.bench.outputs.failed }}' = true ]; then
+          echo "::error::Benchmarks failed, see the job summary; what was measured is published anyway"
+        fi
         exit 1
 
   # Compares with the last results stored on gh-pages (from main) and, on main, stores the new
@@ -167,6 +196,7 @@ jobs:
       if: github.event_name == 'pull_request'
       env:
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        BENCH_FAILED: ${{ needs.instructions.outputs.failed }}
       run: .github/scripts/bench-comment.sh > "$RUNNER_TEMP/comment.md"
 
     # Creates the comment, or updates the one with the same header on the next pushes.
@@ -176,7 +206,9 @@ jobs:
         header: benchmarks
         path: ${{ runner.temp }}/comment.md
 
+    # Nothing measured, nothing to chart: the comment above already says what happened.
     - uses: benchmark-action/github-action-benchmark@v1
+      if: needs.instructions.outputs.results != '0'
       with:
         name: Instruction counts
         tool: customSmallerIsBetter

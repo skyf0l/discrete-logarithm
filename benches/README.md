@@ -66,8 +66,11 @@ cargo bench --profile bench-lto --features bench --bench walltime
 - On pull requests, the base branch and the PR run in the same job and are compared there. The
   job fails if an instruction count grows by more than 2%.
 - On pull requests, one comment compares the PR with its base branch, worst changes first and
-  unchanged benchmarks collapsed (updated on each push). A regression fails the job but still
-  reports the results.
+  unchanged benchmarks collapsed (updated on each push).
+- Results are published whatever happens. A regression, a benchmark that fails outright and a
+  baseline that could not be measured all leave the numbers in the job summary, in the comment and
+  on the history charts, and the job still goes red afterwards. A failed run says so in the
+  comment, since its numbers are only what it managed to measure.
 - The benchmarks are built without debug info in CI (`CARGO_PROFILE_BENCH_DEBUG=false`): half
   the build time, same instruction counts.
 - On pushes to `main`, results are stored on the `gh-pages` branch by
