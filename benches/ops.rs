@@ -125,6 +125,9 @@ fn order_input(n: &str, b: &str) -> (Integer, Integer, HashMap<Integer, usize>) 
 // most of its time on before it even chooses an algorithm.
 #[library_benchmark]
 #[bench::composite(order_input("32942478", "11"))]
+// A modulus divisible by 8, where the group of units is not cyclic: the order divides the exact
+// Carmichael lambda `2**38` of `2**40`, not `phi = 2**39`, and 3 is a unit modulo it.
+#[bench::power_of_two(order_input("1099511627776", "3"))]
 #[bench::digits_108(order_input(DIGITS_108.0, DIGITS_108.2))]
 fn element_order(
     input: (Integer, Integer, HashMap<Integer, usize>),
@@ -184,25 +187,44 @@ fn solve(algorithm: Algorithm, instance: &Instance) -> Vec<Integer> {
 }
 
 // The three algorithms for prime orders, on the same instances: shows where each one is the
-// fastest, to choose the thresholds of `discrete_log_with_order`.
+// fastest, which is what the thresholds of the algorithm selection (`SHANKS_STEPS_ORDER` and
+// `INDEX_CALCULUS_SLACK` of `lib.rs`) are set from. The order of a safe prime of `bits` bits has
+// `bits - 1` of them, so a boundary on the order falls one bit above the case that brackets it.
 
+// Baby-step giant-step stops at 40 bits: the order of a safe prime of 41 bits is above `MAX_ORDER`,
+// the size its table stops fitting in memory at, and it refuses such an order outright.
 #[library_benchmark]
 #[bench::bits_28(Instance::safe_prime(28, SEED))]
+#[bench::bits_32(Instance::safe_prime(32, SEED))]
 #[bench::bits_34(Instance::safe_prime(34, SEED))]
+#[bench::bits_36(Instance::safe_prime(36, SEED))]
+#[bench::bits_40(Instance::safe_prime(40, SEED))]
 fn prime_order_shanks_steps(instance: Instance) -> Vec<Integer> {
     solve(discrete_log_shanks_steps, &instance)
 }
 
 #[library_benchmark]
 #[bench::bits_28(Instance::safe_prime(28, SEED))]
+#[bench::bits_32(Instance::safe_prime(32, SEED))]
 #[bench::bits_34(Instance::safe_prime(34, SEED))]
+#[bench::bits_36(Instance::safe_prime(36, SEED))]
+#[bench::bits_40(Instance::safe_prime(40, SEED))]
+#[bench::bits_42(Instance::safe_prime(42, SEED))]
+#[bench::bits_46(Instance::safe_prime(46, SEED))]
 fn prime_order_pollard_rho(instance: Instance) -> Vec<Integer> {
     solve(pollard_rho, &instance)
 }
 
+// Index calculus is the algorithm chosen from a modulus of about 45 bits on
+// (`INDEX_CALCULUS_SLACK`), which the 42-bit and 46-bit cases bracket.
 #[library_benchmark]
 #[bench::bits_28(Instance::safe_prime(28, SEED))]
+#[bench::bits_32(Instance::safe_prime(32, SEED))]
 #[bench::bits_34(Instance::safe_prime(34, SEED))]
+#[bench::bits_36(Instance::safe_prime(36, SEED))]
+#[bench::bits_40(Instance::safe_prime(40, SEED))]
+#[bench::bits_42(Instance::safe_prime(42, SEED))]
+#[bench::bits_46(Instance::safe_prime(46, SEED))]
 fn prime_order_index_calculus(instance: Instance) -> Vec<Integer> {
     solve(index_calculus_seeded, &instance)
 }
@@ -237,6 +259,10 @@ library_benchmark_group!(
 // per prime power.
 #[library_benchmark]
 #[bench::n_32942478(Instance::new("32942478", "11", &["10792037"]))]
+// The order of 2 modulo `1009**3` is `2**3 * 3**2 * 7 * 1009**2`: the two digits of `1009**2` are
+// solved over one shared table of baby steps, where the digits of `2**3` and `3**2` fall below the
+// exhaustive search threshold and are solved one by one.
+#[bench::prime_power_order(Instance::new("1027243729", "2", &["177424694"]))]
 #[bench::digits_108(Instance::new(DIGITS_108.0, DIGITS_108.2, &[DIGITS_108.1]))]
 fn pohlig_hellman(instance: Instance) -> Vec<Integer> {
     solve(discrete_log_pohlig_hellman, &instance)
