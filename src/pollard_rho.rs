@@ -1,3 +1,12 @@
+#[cfg(feature = "parallel")]
+use std::{
+    collections::HashMap,
+    sync::{
+        Mutex, MutexGuard,
+        atomic::{AtomicBool, Ordering},
+    },
+};
+
 use rug::{Integer, rand::RandState};
 
 use crate::{
@@ -379,6 +388,430 @@ fn part_of<G: ModRing>(group: &G, point: &G::Elem) -> usize {
     ((u128::from(mixed) * MULTIPLIERS as u128) >> 64) as usize
 }
 
+/// Multiplier of the distinguished point test: another odd number with its bits well spread, and
+/// not the one the partition uses, so that being distinguished tells nothing about the part a
+/// point falls in.
+#[cfg(feature = "parallel")]
+const DISTINGUISHED_MULTIPLIER: u64 = 0xC2B2_AE3D_27D4_EB4F;
+
+/// Most leading zeros a distinguished point is asked for, whatever the order.
+///
+/// One point in `2**24` is distinguished, so a walk covers sixteen million steps between two of
+/// them: past that the table stops growing usefully and the tail each thread walks after the
+/// collision starts to be felt.
+#[cfg(feature = "parallel")]
+const MAX_DISTINGUISHED_BITS: u32 = 24;
+
+/// Most distinguished points the shared table holds.
+///
+/// A point costs its residue and two exponents: three words for a modulus that fits in one, a
+/// dozen megabytes of table once the load factor is counted, and three GMP integers otherwise, a
+/// few tens of megabytes. With [`distinguished_bits`] the expected number of points stored is the
+/// fourth root of the order, below the cap for every order a square root time search can reach, so
+/// only a search that finds nothing and walks its whole budget fills the table.
+#[cfg(feature = "parallel")]
+const MAX_DISTINGUISHED_POINTS: usize = 1 << 18;
+
+/// Steps between two reads of the stop signal by a walk that meets no distinguished point.
+#[cfg(feature = "parallel")]
+const STOP_CHECK_STEPS: u64 = 1024;
+
+/// Most walks a parallel search runs, whatever it is asked for.
+///
+/// A count taken as it comes is a count the caller can make the process die of: a hundred thousand
+/// threads is a spawn the operating system refuses (`WouldBlock`, a panic out of
+/// `std::thread::scope`), and `usize::MAX` of them overflows the vector of seeds before a single
+/// walk starts. No machine this runs on has this many cores, and more walks than there are cores
+/// only makes each of them slower, so clamping here costs nothing that was ever worth having.
+#[cfg(feature = "parallel")]
+pub const MAX_THREADS: usize = 256;
+
+/// The exponents of `b` and of `a` a point was reached with.
+#[cfg(feature = "parallel")]
+type Exponents<E> = (<E as ModRing>::Elem, <E as ModRing>::Elem);
+
+/// Pollard's Rho algorithm for computing the discrete logarithm of `a` in base `b` modulo `n` (smallest non-negative integer `x` where `b**x = a (mod n)`), searched by `threads` threads at once.
+///
+/// This is the parallel collision search of van Oorschot and Wiener, and the only entry point of
+/// the crate that spawns threads: every other one stays in the thread that calls it. It is opt-in
+/// for that reason, behind the `parallel` feature.
+///
+/// The threads walk the same r-adding walk as [`discrete_log_pollard_rho`], each from a starting
+/// point of its own. A point is *distinguished* when a cheap hash of its residue comes out with
+/// enough leading zeros, and the distinguished points go into a table shared by the threads,
+/// together with the exponents they were reached with. Two walks that meet are the same walk from
+/// there on, so they reach the same distinguished point, and the two exponent pairs it was stored
+/// with give the logarithm. Waiting for a walk to close its own cycle instead, as the sequential
+/// version does, gives each thread the work of a whole search: this divides the expected number of
+/// steps by the number of threads, which no sequential variant of the walk can do.
+///
+/// One point in `order**(1/4)` is distinguished, so the table holds about `order**(1/4)` points
+/// against the `order**(1/2)` steps of the search, and each thread walks about `order**(1/4)` steps
+/// past the collision before it notices. It is capped anyway, at a few hundred thousand points, a
+/// few tens of megabytes at worst.
+///
+/// `threads` of 0 or 1 runs [`discrete_log_pollard_rho`] in the calling thread instead. More
+/// threads than the machine has cores only slows the search down, and an order small enough for
+/// the walk to end in microseconds is not worth spawning a thread for. A count above
+/// [`MAX_THREADS`] is clamped to it rather than refused, and a spawn the operating system will not
+/// grant leaves the search to the walks already started: asking for a hundred thousand threads is
+/// answered by a search over [`MAX_THREADS`] of them, not by a panic.
+///
+/// One of the walks runs in the calling thread, which would otherwise only wait for the others, so
+/// `threads` walks cost `threads - 1` spawned threads.
+///
+/// A modulus that is not positive is refused with [`Error::InvalidModulus`]. Modulo 1 every residue
+/// is 0, so the logarithm is 0. [`Error::LogDoesNotExist`] means "no logarithm found within the
+/// budget of the search", as it does for [`discrete_log_pollard_rho`]: every thread walks a bounded
+/// number of steps, so a problem with no logarithm ends in a failure instead of a search that never
+/// stops.
+///
+/// Threads make the walks unreproducible, so which relation solves the problem changes from one run
+/// to the next. The logarithm is verified before it is returned, and reduced into `[0, order)`.
+///
+/// If the order of the group is known, it can be passed as `order` to speed up the computation. The
+/// precondition on it is the one of [`discrete_log_pollard_rho`]: only the real order of `b`
+/// guarantees the smallest exponent.
+///
+/// # Examples
+///
+/// ```
+/// use discrete_logarithm::discrete_log_pollard_rho_parallel;
+/// use rug::Integer;
+///
+/// // A prime modulus whose multiplicative group has a subgroup of prime order `2**30`.
+/// let n = Integer::from(2147483783u32);
+/// let order = Integer::from(1073741891u32);
+/// let b = Integer::from(9);
+/// let a = Integer::from(240127149u32);
+/// let x = discrete_log_pollard_rho_parallel(&n, &a, &b, Some(&order), 4).unwrap();
+/// assert_eq!(x, 12345678);
+/// ```
+#[cfg(feature = "parallel")]
+pub fn discrete_log_pollard_rho_parallel(
+    n: &Integer,
+    a: &Integer,
+    b: &Integer,
+    order: Option<&Integer>,
+    threads: usize,
+) -> Result<Integer, Error> {
+    let mut rand_state = RandState::new();
+    let threads = threads.min(MAX_THREADS);
+    if threads <= 1 {
+        return solve(
+            n,
+            a,
+            b,
+            order,
+            SequentialWalk {
+                rand_state: &mut rand_state,
+            },
+        );
+    }
+    solve(
+        n,
+        a,
+        b,
+        order,
+        ParallelSearch {
+            threads,
+            rand_state: &mut rand_state,
+        },
+    )
+}
+
+/// The task of [`discrete_log_pollard_rho_parallel`]: several walks, one per spawned thread.
+#[cfg(feature = "parallel")]
+struct ParallelSearch<'a, 'b> {
+    /// How many threads walk, at least two.
+    threads: usize,
+    /// Where the multipliers, the starting points and the seeds of the threads are drawn from.
+    rand_state: &'a mut RandState<'b>,
+}
+
+#[cfg(feature = "parallel")]
+impl RingTask for ParallelSearch<'_, '_> {
+    fn run<G, E>(
+        self,
+        group: &G,
+        exponents: &E,
+        a: &Integer,
+        b: &Integer,
+        order: &Integer,
+    ) -> Result<Integer, Error>
+    where
+        G: ModRing + Sync,
+        G::Elem: Send + Sync,
+        E: ModRing + Sync,
+        E::Elem: Send + Sync,
+    {
+        parallel_walk(group, exponents, a, b, order, self.threads, self.rand_state)
+    }
+}
+
+/// What the threads of a [`Search`] write to.
+#[cfg(feature = "parallel")]
+struct Shared<G: ModRing, E: ModRing> {
+    /// Every distinguished point met so far, and the exponents the walk that stored it had there.
+    table: Mutex<HashMap<G::Elem, Exponents<E>>>,
+    /// The logarithm, once a thread has derived one from a collision and verified it.
+    answer: Mutex<Option<Integer>>,
+    /// Set once the search is over, so that the other threads leave their walk.
+    stop: AtomicBool,
+}
+
+/// One parallel collision search: what every thread reads, and what they all write to.
+#[cfg(feature = "parallel")]
+struct Search<'a, G: ModRing, E: ModRing> {
+    /// The group the walk multiplies in.
+    group: &'a G,
+    /// The ring the exponents are counted in, of modulus the order.
+    exponents: &'a E,
+    /// The element whose logarithm is wanted.
+    a: G::Elem,
+    /// The base of the logarithm.
+    b: G::Elem,
+    /// The order of `b`, at least four.
+    order: &'a Integer,
+    /// The multipliers of the walk, the same ones for every thread.
+    multipliers: Vec<Multiplier<G, E>>,
+    /// Steps one thread walks from one starting point before trying another.
+    budget: u64,
+    /// Leading zeros of the hash of a residue that make its point distinguished.
+    distinguished_bits: u32,
+    /// What the threads write to.
+    shared: Shared<G, E>,
+}
+
+/// [`discrete_log_pollard_rho_parallel`] with the group in `group` and the exponents in
+/// `exponents`, the order being at least four and `threads` being at least two.
+#[cfg(feature = "parallel")]
+fn parallel_walk<G, E>(
+    group: &G,
+    exponents: &E,
+    a: &Integer,
+    b: &Integer,
+    order: &Integer,
+    threads: usize,
+    rand_state: &mut RandState<'_>,
+) -> Result<Integer, Error>
+where
+    G: ModRing + Sync,
+    G::Elem: Send + Sync,
+    E: ModRing + Sync,
+    E::Elem: Send + Sync,
+{
+    let a = group.from_integer(a);
+    let b = group.from_integer(b);
+    // One set of multipliers for the whole search, where the sequential walk draws fresh ones at
+    // every retry: a collision between two walks is only a relation if both add the same
+    // exponents, and new multipliers would make the points already in the table meaningless.
+    let multipliers = random_multipliers(group, exponents, &a, &b, order, rand_state);
+    // A generator cannot cross a thread boundary, so each thread builds its own from a seed drawn
+    // here: the whole search still comes out of this one generator, and the walks stay independent.
+    let seeds: Vec<u64> = (0..threads).map(|_| random_word(rand_state)).collect();
+
+    let search = Search {
+        group,
+        exponents,
+        a,
+        b,
+        order,
+        multipliers,
+        budget: step_budget(order),
+        distinguished_bits: distinguished_bits(order),
+        shared: Shared {
+            table: Mutex::new(HashMap::new()),
+            answer: Mutex::new(None),
+            stop: AtomicBool::new(false),
+        },
+    };
+
+    // A scope borrows the search instead of counting references to it, and joins every thread
+    // before it returns: there is no thread left running when the table and the answer go away.
+    std::thread::scope(|scope| {
+        let search = &search;
+        // The first seed is walked here, in the thread that would otherwise only wait for the
+        // others, so `threads` walks need `threads - 1` spawns. A spawn the operating system will
+        // not grant stops the loop instead of unwinding out of the scope: the walks already started
+        // are then the whole search, which is a slower search and not a failed one.
+        let (mine, spawned) = seeds.split_first().expect("at least two seeds");
+        for &seed in spawned {
+            if std::thread::Builder::new()
+                .spawn_scoped(scope, move || search.trail(seed))
+                .is_err()
+            {
+                break;
+            }
+        }
+        search.trail(*mine);
+    });
+
+    match take(&search.shared.answer) {
+        Some(candidate) => Ok(candidate),
+        None => Err(Error::LogDoesNotExist),
+    }
+}
+
+#[cfg(feature = "parallel")]
+impl<G: ModRing, E: ModRing> Search<'_, G, E> {
+    /// The walks of one thread, from starting points drawn off `seed`.
+    ///
+    /// It returns once it has derived the logarithm, once another thread has, or once every
+    /// starting point it was given has run out of steps. Each of those is bounded, so a problem
+    /// with no logarithm ends the thread instead of walking forever.
+    fn trail(&self, seed: u64) {
+        let mut rand_state = RandState::new();
+        rand_state.seed(&Integer::from(seed));
+
+        for _ in 0..RETRIES {
+            if self.stopped() {
+                return;
+            }
+            let (mut point, mut b_exponent, mut a_exponent) = random_start(
+                self.group,
+                self.exponents,
+                &self.a,
+                &self.b,
+                self.order,
+                &mut rand_state,
+            );
+
+            for step in 0..self.budget {
+                advance(
+                    self.group,
+                    self.exponents,
+                    &self.multipliers,
+                    &mut point,
+                    &mut b_exponent,
+                    &mut a_exponent,
+                );
+
+                if !self.is_distinguished(&point) {
+                    // The stop signal is read at the distinguished points, which is where the
+                    // shared table is touched anyway; a walk can go a long way between two of
+                    // them, and this bounds how long it keeps going after the search is over
+                    // without an atomic read at every step.
+                    if step % STOP_CHECK_STEPS == 0 && self.stopped() {
+                        return;
+                    }
+                    continue;
+                }
+
+                let Some((saved_b, saved_a)) = self.store(&point, &b_exponent, &a_exponent) else {
+                    continue;
+                };
+                // Derived and verified with the table unlocked: the exponentiation the check costs
+                // is longer than the lookup, and every other thread would be waiting on it.
+                if let Some(candidate) = relation(
+                    self.group,
+                    self.exponents,
+                    &self.a,
+                    &self.b,
+                    &b_exponent,
+                    &a_exponent,
+                    &saved_b,
+                    &saved_a,
+                ) {
+                    let mut answer = lock(&self.shared.answer);
+                    // Two threads can finish at once, and either logarithm is verified: the first
+                    // one stands, so that the answer does not depend on which lock was won.
+                    if answer.is_none() {
+                        *answer = Some(candidate);
+                    }
+                    drop(answer);
+                    self.shared.stop.store(true, Ordering::Release);
+                    return;
+                }
+                // A collision with no usable relation in it: the walk goes on to the next one.
+                if self.stopped() {
+                    return;
+                }
+            }
+        }
+    }
+
+    /// Whether `point` is one of the distinguished points, the ones the threads share.
+    ///
+    /// The test is a multiplication and a shift, cheap enough to run at every step of the walk.
+    /// The hash is of the residue and not of the representation, as [`part_of`] is, so that the
+    /// same point is distinguished in whichever ring the group happens to be held.
+    #[inline]
+    fn is_distinguished(&self, point: &G::Elem) -> bool {
+        let hash = self
+            .group
+            .residue_word(point)
+            .wrapping_mul(DISTINGUISHED_MULTIPLIER);
+        hash >> (u64::BITS - self.distinguished_bits) == 0
+    }
+
+    /// Stores a distinguished point and the exponents it was reached with, returning the exponents
+    /// an earlier walk had at that same point when there is one.
+    ///
+    /// A full table stores nothing more: the search then only sees the collisions that involve a
+    /// point already in it, which is all of them until the run is far longer than its expected
+    /// length.
+    fn store(
+        &self,
+        point: &G::Elem,
+        b_exponent: &E::Elem,
+        a_exponent: &E::Elem,
+    ) -> Option<Exponents<E>> {
+        let mut table = lock(&self.shared.table);
+        match table.get(point) {
+            Some(exponents) => Some(exponents.clone()),
+            None => {
+                if table.len() < MAX_DISTINGUISHED_POINTS {
+                    table.insert(point.clone(), (b_exponent.clone(), a_exponent.clone()));
+                }
+                None
+            }
+        }
+    }
+
+    /// Whether the search is over, here or in another thread.
+    #[inline]
+    fn stopped(&self) -> bool {
+        self.shared.stop.load(Ordering::Acquire)
+    }
+}
+
+/// Leading zeros the hash of a residue must have for its point to be distinguished.
+///
+/// One point in `2**bits` is distinguished, which trades the memory of the table against the work
+/// thrown away at the end of the search: a run of `s` steps stores about `s / 2**bits` points, and
+/// each thread walks `2**bits` steps on average after the collision that solves the problem before
+/// it reaches the distinguished point that shows it. A quarter of the bits of the order makes both
+/// of them the fourth root of the order, against the square root of it the search itself costs.
+#[cfg(feature = "parallel")]
+fn distinguished_bits(order: &Integer) -> u32 {
+    (order.significant_bits() / 4).clamp(1, MAX_DISTINGUISHED_BITS)
+}
+
+/// A word drawn from `rand_state`, to seed the generator of one thread with.
+#[cfg(feature = "parallel")]
+fn random_word(rand_state: &mut RandState<'_>) -> u64 {
+    Integer::from(Integer::random_bits(u64::BITS, rand_state)).to_u64_wrapping()
+}
+
+/// Locks `mutex`, taking its value back when a panic elsewhere poisoned it.
+///
+/// Nothing in the search panics while holding a lock, so what is behind it is whole whatever the
+/// poison says, and bringing down a thread of the search over it would only lose the walks the
+/// others have done.
+#[cfg(feature = "parallel")]
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Takes the value out of `mutex`, poisoned or not.
+#[cfg(feature = "parallel")]
+fn take<T: Default>(mutex: &Mutex<T>) -> T {
+    std::mem::take(&mut *lock(mutex))
+}
+
 #[cfg(test)]
 mod tests {
     use rug::{integer::IsPrime, ops::Pow};
@@ -652,6 +1085,192 @@ mod tests {
                     .unwrap()
                 % &n;
             assert_eq!(group.to_integer(&point), expected);
+        }
+    }
+
+    /// Two instances of prime order just above `2**40`: `b` generates the subgroup of that order
+    /// of the multiplicative group of a safe prime `2 * order + 1`.
+    #[cfg(feature = "parallel")]
+    const PRIME_ORDER_INSTANCES: [(u64, u64, u64, u64, u64); 2] = [
+        // (modulus, order, base, logarithm, element)
+        (2199023255867, 1099511627933, 9, 987654321, 1466426439827),
+        (2199023258567, 1099511629283, 9, 1099511627775, 826684467692),
+    ];
+
+    #[test]
+    #[cfg(feature = "parallel")]
+    fn parallel() {
+        // The walks are not reproducible with threads: the logarithm is what is checked, not how
+        // it was reached.
+        for (n, order, b, x, a) in PRIME_ORDER_INSTANCES {
+            for threads in [2, 4] {
+                assert_eq!(
+                    discrete_log_pollard_rho_parallel(
+                        &Integer::from(n),
+                        &Integer::from(a),
+                        &Integer::from(b),
+                        Some(&Integer::from(order)),
+                        threads,
+                    )
+                    .unwrap(),
+                    x,
+                    "log of {a} in base {b} modulo {n} over {threads} threads"
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "parallel")]
+    fn parallel_without_a_logarithm() {
+        // 7 is not a power of 31 modulo 11: every thread walks its whole budget and stops, where
+        // an unbounded search would never return.
+        for threads in [0, 1, 2, 4, 8] {
+            assert_eq!(
+                discrete_log_pollard_rho_parallel(&11.into(), &7.into(), &31.into(), None, threads),
+                Err(Error::LogDoesNotExist),
+                "{threads} threads"
+            );
+        }
+        // The same over GMP, with a modulus above `2**64`: `3` is not in the subgroup of order
+        // 1009 that `b` generates, being of order `n - 1`.
+        let order = Integer::from(1009u32);
+        let (n, b) = big_modulus_and_base(&order);
+        for threads in [1, 2, 4] {
+            assert_eq!(
+                discrete_log_pollard_rho_parallel(&n, &3.into(), &b, Some(&order), threads),
+                Err(Error::LogDoesNotExist),
+                "{threads} threads"
+            );
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "parallel")]
+    fn parallel_thread_count_is_clamped() {
+        // Counts no machine can spawn: a hundred thousand threads was a panic out of the scope
+        // (`WouldBlock`), and `usize::MAX` a capacity overflow on the vector of seeds.
+        for threads in [MAX_THREADS, MAX_THREADS + 1, 100_000, usize::MAX] {
+            assert_eq!(
+                discrete_log_pollard_rho_parallel(&11.into(), &7.into(), &31.into(), None, threads),
+                Err(Error::LogDoesNotExist),
+                "{threads} threads"
+            );
+        }
+        // And a search over the cap still solves: the walks the clamp leaves are a whole search.
+        assert_eq!(
+            discrete_log_pollard_rho_parallel(
+                &Integer::from(2147483783u32),
+                &Integer::from(240127149u32),
+                &9.into(),
+                Some(&Integer::from(1073741891u32)),
+                usize::MAX,
+            )
+            .unwrap(),
+            12345678
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "parallel")]
+    fn parallel_without_threads() {
+        // No thread asked for, and one thread asked for, both run the sequential walk.
+        for threads in [0, 1] {
+            assert_eq!(
+                discrete_log_pollard_rho_parallel(
+                    &24567899.into(),
+                    &(Integer::from(3).pow(333)),
+                    &3.into(),
+                    None,
+                    threads,
+                )
+                .unwrap(),
+                333,
+                "{threads} threads"
+            );
+            assert_eq!(
+                discrete_log_pollard_rho_parallel(
+                    &227.into(),
+                    &(Integer::from(3).pow(7)),
+                    &5.into(),
+                    None,
+                    threads,
+                )
+                .unwrap(),
+                132,
+                "{threads} threads"
+            );
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "parallel")]
+    fn parallel_modulus_above_a_word() {
+        // The GMP path of the parallel search: the group lives on `BigRing`, whose elements are
+        // the keys of the shared table.
+        let order = Integer::from(1009u32);
+        let (n, b) = big_modulus_and_base(&order);
+        for x in [0u32, 1, 225, 1008] {
+            let a = b.clone().pow_mod(&Integer::from(x), &n).unwrap();
+            for threads in [2, 4] {
+                assert_eq!(
+                    discrete_log_pollard_rho_parallel(&n, &a, &b, Some(&order), threads).unwrap(),
+                    x,
+                    "log of {a} in base {b} modulo {n} over {threads} threads"
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "parallel")]
+    fn distinguished_points() {
+        // A quarter of the bits of the order, and never more than the cap.
+        assert_eq!(distinguished_bits(&Integer::from(4)), 1);
+        assert_eq!(distinguished_bits(&(Integer::from(1) << 40u32)), 10);
+        assert_eq!(
+            distinguished_bits(&(Integer::from(1) << 400u32)),
+            MAX_DISTINGUISHED_BITS
+        );
+
+        // One point in `2**bits` is distinguished, and the same point is distinguished in whichever
+        // ring the group is held.
+        let group = WordRing::new(1_000_003).unwrap();
+        let big = BigRing::new(&Integer::from(1_000_003)).unwrap();
+        for distinguished_bits in [1, 4, 8] {
+            let search_group = Search {
+                group: &group,
+                exponents: &group,
+                a: group.one(),
+                b: group.one(),
+                order: &Integer::from(1_000_003),
+                multipliers: Vec::new(),
+                budget: 0,
+                distinguished_bits,
+                shared: Shared {
+                    table: Mutex::new(HashMap::new()),
+                    answer: Mutex::new(None),
+                    stop: AtomicBool::new(false),
+                },
+            };
+            let mut met = 0usize;
+            for value in 0..1_000_003u64 {
+                if search_group.is_distinguished(&group.from_u64(value)) {
+                    met += 1;
+                    assert!(
+                        big.residue_word(&big.from_integer(&Integer::from(value)))
+                            .wrapping_mul(DISTINGUISHED_MULTIPLIER)
+                            >> (u64::BITS - distinguished_bits)
+                            == 0
+                    );
+                }
+            }
+            let expected = 1_000_003usize >> distinguished_bits;
+            assert!(
+                met > expected / 2 && met < expected * 2,
+                "{met} of a million points distinguished at {distinguished_bits} bits, \
+                 about {expected} expected"
+            );
         }
     }
 }

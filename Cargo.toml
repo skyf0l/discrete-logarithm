@@ -45,6 +45,10 @@ codegen-units = 1
 default = []
 # Exposes internals (`discrete_logarithm::bench`) for benchmarks. Not part of the public API.
 bench = []
+# Adds `discrete_log_pollard_rho_parallel`, the parallel collision search of van Oorschot and
+# Wiener. Threads come from `std::thread`, so the feature brings in no dependency, and no other
+# entry point of the crate spawns any.
+parallel = []
 
 [dependencies]
 thiserror = "2.0"
