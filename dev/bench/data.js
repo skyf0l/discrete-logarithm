@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1790446624656,
+  "lastUpdate": 1790458501898,
   "repoUrl": "https://github.com/skyf0l/discrete-logarithm",
   "entries": {
     "Instruction counts": [
@@ -566,6 +566,265 @@ window.BENCHMARK_DATA = {
           {
             "name": "ops::prime_order::prime_order_shanks_steps::bits_40",
             "value": 287720163,
+            "unit": "instructions"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "distinct": true,
+          "id": "c7da0344b3d103f660ab600a25bb7754d088222e",
+          "message": "chore(deps): update rust crate gungraun to v0.20.0",
+          "timestamp": "2026-09-26T21:33:11Z",
+          "tree_id": "9ee8cb86eb1069ad1eaa4a6425db33c5bd190f31",
+          "url": "https://github.com/skyf0l/discrete-logarithm/commit/c7da0344b3d103f660ab600a25bb7754d088222e"
+        },
+        "date": 1790458500832,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "e2e::e2e::solve::digits_108",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_2456747",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_32942478",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_5779",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_587",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::two_large_primes",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::digits_108",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::n_32942478",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::prime_power_order",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::large_prime_cofactor",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::large_prime_squared",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::medium_prime_powers",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::small",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::smooth",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::two_large_primes",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::index_calculus_smoothness::not_smooth",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::index_calculus_smoothness::smooth",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::element_order::composite",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::element_order::digits_108",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::element_order::power_of_two",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::composite",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::prime",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::prime_power",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_47747730623",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_633383",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_941762639",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_983",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_999231337607",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_28",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_32",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_34",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_36",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_40",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_42",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_46",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_28",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_32",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_34",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_36",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_40",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_42",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_46",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_28",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_32",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_34",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_36",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_40",
+            "value": 0,
             "unit": "instructions"
           }
         ]
