@@ -7,13 +7,24 @@ measured separately:
 | What | Where | Measure | CI |
 |---|---|---|---|
 | Building blocks: factorization (trial division, Pollard's rho, perfect powers), `n_order`, order of the base in one pass, index calculus smoothness test | `ops.rs` | Instruction counts (Valgrind), deterministic | ✅ |
-| Each algorithm alone, the order given: the prime-order algorithms on the same instances, index calculus, Pohlig-Hellman | `ops.rs` | Instruction counts (Valgrind), deterministic | ✅ |
+| Each algorithm alone, the order given: the three prime-order algorithms on the same instances from 28 to 46 bits, index calculus, Pohlig-Hellman | `ops.rs` | Instruction counts (Valgrind), deterministic | ✅ |
 | Complete `discrete_log` on the instances of the tests | `e2e.rs` | Instruction counts (Valgrind), deterministic | ✅ |
 | Complete `discrete_log` on larger instances | `walltime.rs` | Wall-clock time (criterion) | ❌ too noisy on shared runners |
 
 Pollard's rho and index calculus are randomized: the benchmarks use their seeded variants, so
 every run draws the same numbers, and their instances solve several targets to average out the
 luck of one draw.
+
+The three prime-order algorithms run on the same safe-prime instances at 28, 32, 34, 36, 40, 42
+and 46 bits, which is how the selection boundaries in `discrete_log` were chosen (baby-step
+giant-step stops at 40 bits: above that the order passes its own memory cap and it refuses the
+problem). `element_order power_of_two` covers the exact Carmichael lambda of a modulus divisible
+by 8, and `pohlig_hellman prime_power_order` (base 2 modulo 1009^3) covers the baby-step table
+shared between the digits of a repeated prime.
+
+`[profile.bench]` sets `codegen-units = 1`: without it, an edit in one module shifts the one-time
+costs of another by up to 2% and the comparison reports regressions on benchmarks that ran no new
+code. It costs a few seconds per benchmark rebuild.
 
 ## Instruction counts
 
