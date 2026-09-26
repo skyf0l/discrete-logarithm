@@ -13,7 +13,7 @@
 //! cargo bench --profile bench-lto --features bench --bench walltime
 //! ```
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use discrete_logarithm::discrete_log;
 use rug::Integer;
 use std::{hint::black_box, str::FromStr};

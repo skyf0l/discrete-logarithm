@@ -8,11 +8,12 @@
 
 mod common;
 
-use common::{check_factors, int, prime_bits, Instance, DIGITS_108, SEED};
+use common::{DIGITS_108, Instance, SEED, check_factors, int, prime_bits};
 use discrete_logarithm::{
+    Error,
     bench::{element_order_with_factors, fast_factor, is_smooth},
     discrete_log_index_calculus_with_seed, discrete_log_pohlig_hellman,
-    discrete_log_pollard_rho_with_seed, discrete_log_shanks_steps, n_order, Error,
+    discrete_log_pollard_rho_with_seed, discrete_log_shanks_steps, n_order,
 };
 use gungraun::{library_benchmark, library_benchmark_group, main};
 use primal::Primes;

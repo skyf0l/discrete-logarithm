@@ -1,7 +1,10 @@
 [package]
 name = "discrete-logarithm"
 version = "2.0.0"
-edition = "2021"
+edition = "2024"
+# The library builds with 1.86; its own source needs 1.84 (`u64::isqrt`), the rest comes from the
+# dependency tree. Benchmarking needs a newer toolchain than that, through `gungraun`.
+rust-version = "1.86"
 authors = ["skyf0l <skyf0lmails@proton.me>"]
 description = "Fast discrete logarithm solver"
 repository = "https://github.com/skyf0l/discrete-logarithm"
@@ -12,14 +15,24 @@ include = [
   "benches/**/*",
   "src/**/*",
   "Cargo.toml",
+  "CHANGELOG.md",
   "LICENSE*",
   "README.md",
 ]
 readme = "README.md"
 
+# docs.rs documents the optional features too.
+[package.metadata.docs.rs]
+all-features = true
+
 [profile.bench]
 opt-level = 3
 debug = true
+# One codegen unit: with several of them, an edit anywhere moves inlining decisions and the layout
+# of the one-time setup code between units, which the instruction counts see as a constant shift
+# (an earlier measurement had +6475 instructions appear on benchmarks that ran no new code). It
+# costs a few seconds of compilation of the benchmarks, no more.
+codegen-units = 1
 
 # Wall-clock benchmarks with the optimizations of a final build (`cargo bench --profile
 # bench-lto ...`): instruction counts don't see their effects (inlining, allocator).
