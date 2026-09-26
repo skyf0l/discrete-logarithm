@@ -1,4 +1,12 @@
 #![doc = include_str!("../README.md")]
+//!
+//! # Optional features
+//!
+//! - `parallel` (off by default): adds `discrete_log_pollard_rho_parallel`, the parallel collision
+//!   search of van Oorschot and Wiener, whose expected running time is that of Pollard's Rho
+//!   divided by the number of threads. It is opt-in because it is the only entry point that spawns
+//!   threads, [`discrete_log`] and the others staying in the thread that calls them. It needs no
+//!   dependency, `std::thread` only.
 #![deny(rust_2018_idioms)]
 #![warn(missing_docs)]
 
@@ -22,6 +30,8 @@ mod trial_mul;
 pub use index_calculus::{discrete_log_index_calculus, discrete_log_index_calculus_with_seed};
 pub use n_order::{n_order, n_order_with_factors};
 pub use pohlig_hellman::{discrete_log_pohlig_hellman, discrete_log_pohlig_hellman_with_factors};
+#[cfg(feature = "parallel")]
+pub use pollard_rho::{MAX_THREADS, discrete_log_pollard_rho_parallel};
 pub use pollard_rho::{discrete_log_pollard_rho, discrete_log_pollard_rho_with_seed};
 pub use shanks_steps::discrete_log_shanks_steps;
 pub use trial_mul::discrete_log_trial_mul;
