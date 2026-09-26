@@ -2,7 +2,7 @@
 
 #![allow(dead_code)]
 
-use rug::{integer::IsPrime, ops::Pow, rand::RandState, Integer};
+use rug::{Integer, integer::IsPrime, ops::Pow, rand::RandState};
 use std::{collections::HashMap, str::FromStr};
 
 /// Seed used for every generated input, so all runs measure exactly the same work.

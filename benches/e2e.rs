@@ -11,7 +11,7 @@
 
 mod common;
 
-use common::{int, DIGITS_108};
+use common::{DIGITS_108, int};
 use discrete_logarithm::discrete_log;
 use gungraun::{library_benchmark, library_benchmark_group, main};
 use rug::Integer;
