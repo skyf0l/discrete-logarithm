@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1792388556859,
+  "lastUpdate": 1792989762789,
   "repoUrl": "https://github.com/skyf0l/discrete-logarithm",
   "entries": {
     "Instruction counts": [
@@ -1626,6 +1626,265 @@ window.BENCHMARK_DATA = {
           "url": "https://github.com/skyf0l/discrete-logarithm/commit/9c937a9dd0b5a5f7a23ad401999010433174e838"
         },
         "date": 1792388556345,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "e2e::e2e::solve::digits_108",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_2456747",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_32942478",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_5779",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::n_587",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "e2e::e2e::solve::two_large_primes",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::digits_108",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::n_32942478",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::composite_order::pohlig_hellman::prime_power_order",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::large_prime_cofactor",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::large_prime_squared",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::medium_prime_powers",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::small",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::smooth",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::factor::two_large_primes",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::index_calculus_smoothness::not_smooth",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::factorization::index_calculus_smoothness::smooth",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::element_order::composite",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::element_order::digits_108",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::element_order::power_of_two",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::composite",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::prime",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::n_order_group::order::prime_power",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_47747730623",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_633383",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_941762639",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_983",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::index_calculus::n_999231337607",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_28",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_32",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_34",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_36",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_40",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_42",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_index_calculus::bits_46",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_28",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_32",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_34",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_36",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_40",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_42",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_pollard_rho::bits_46",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_28",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_32",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_34",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_36",
+            "value": 0,
+            "unit": "instructions"
+          },
+          {
+            "name": "ops::prime_order::prime_order_shanks_steps::bits_40",
+            "value": 0,
+            "unit": "instructions"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "distinct": true,
+          "id": "a5fa9f84afa6ad68aa62a7598e18894402bd7dc3",
+          "message": "chore(deps): lock file maintenance",
+          "timestamp": "2026-10-26T04:40:53Z",
+          "tree_id": "44bdac4dfb74a6de7b2f099e378e76d69ec55e17",
+          "url": "https://github.com/skyf0l/discrete-logarithm/commit/a5fa9f84afa6ad68aa62a7598e18894402bd7dc3"
+        },
+        "date": 1792989762142,
         "tool": "customSmallerIsBetter",
         "benches": [
           {
